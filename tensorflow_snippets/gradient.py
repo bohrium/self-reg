@@ -36,9 +36,9 @@ import numpy as np
 
 
 
-###############################################################################
-#                            0. HYPERPARAMETERS                               #
-###############################################################################
+################################################################################
+#            0. HYPERPARAMETERS                                                #
+################################################################################
 
 BATCH_SIZE = 4096
 ALPHA = 3.0
@@ -48,9 +48,13 @@ B = 1.0
 
 
 
-###############################################################################
-#                            1. DEFINE STATISTICS                             #
-###############################################################################
+################################################################################
+#            1. DEFINE STATISTICS                                              #
+################################################################################
+
+    #--------------------------------------------------------------------------#
+    #                1.0 define loss landscape                                 #
+    #--------------------------------------------------------------------------#
 
 NoiseA = tf.placeholder(tf.float32, shape=[BATCH_SIZE])
 NoiseB = tf.placeholder(tf.float32, shape=[BATCH_SIZE])
@@ -62,6 +66,10 @@ Weights = [WeightA, WeightB]
 # use of `Linker` forces tf's gradient computations to return an actual 0 instead of `None` when there is no dependency
 Linker = + 0.0*tf.reduce_sum(tf.square(Weights))
 Outputs = (ALPHA + NoiseA) * WeightA + (BETA  + NoiseB) * tf.square(WeightB) + Linker
+
+    #--------------------------------------------------------------------------#
+    #                1.1 define unbiased estimator helper function             #
+    #--------------------------------------------------------------------------#
 
 BESSEL_FACTOR = BATCH_SIZE / (BATCH_SIZE-1)
 def statistics(x, y): 
@@ -83,19 +91,32 @@ def statistics(x, y):
 
     return product_mean, covariance, avg_product, product_avg
 
+    #--------------------------------------------------------------------------#
+    #                1.2 compute SENTIMENT                                     #
+    #--------------------------------------------------------------------------#
+
 AvgOut = tf.reduce_mean(Outputs)
+
+    #--------------------------------------------------------------------------#
+    #                1.3 compute INTENSITY and UNCERTAINTY                     #
+    #--------------------------------------------------------------------------#
+
 Gradients = tf.transpose(tf.convert_to_tensor(tf.gradients(Outputs, Weights)))
-
-AvgGrad = tf.reduce_mean(Gradients, axis=1)
-
 MeanSqrGrad, TraceCovar, AvgSqrNorm, SqrAvgNorm = statistics(Gradients, Gradients)
+
+    #--------------------------------------------------------------------------#
+    #                1.4 compute PASSION and AUDACITY                          #
+    #--------------------------------------------------------------------------#
 
 # below, we multiply by BATCH_SIZE to counter tf.gradients' averaging behavior
 GradMeanSqrGrad = tf.transpose(tf.convert_to_tensor(tf.gradients(MeanSqrGrad, Weights))) * BATCH_SIZE
 GradTraceCovar =  tf.transpose(tf.convert_to_tensor(tf.gradients(TraceCovar, Weights))) * BATCH_SIZE
-
 Passion, _, __, ___ = statistics(Gradients, GradMeanSqrGrad)
 Audacity, _, __, ___ = statistics(Gradients, GradTraceCovar)
+
+    #--------------------------------------------------------------------------#
+    #                1.5 compute PERIL                                         #
+    #--------------------------------------------------------------------------#
 
 # to estimate Peril, we split the batch into two subbatches and invoke multiplicativity of expectation for independents
 Gradients_0 = Gradients[:BATCH_SIZE//2, :] 
@@ -108,24 +129,27 @@ Peril = UncenteredPeril - Passion/2
 
 
 
-###############################################################################
-#                            2. RUN SESSION                                   #
-###############################################################################
+################################################################################
+#            2. RUN SESSION                                                    #
+################################################################################
 
 def get_batch(batch_size=BATCH_SIZE):
+    ''' return (independent) noise samples in the format of a tensorflow feed_dict '''
     noise_a = np.random.randn(batch_size) 
     noise_b = np.random.randn(batch_size) 
     return {NoiseA:noise_a, NoiseB:noise_b, WeightA:A*np.ones(batch_size), WeightB:B*np.ones(batch_size)}
 
 with tf.Session() as session:
     batch = get_batch()
+
+    # Though, for the purpose of testing, we compute the following 7 scalars in independent session-runs, one would in
+    #       practice use a single call: `session.run([AvgOut, MeanSqrGrad, ...], ...)`
     sentiment   =   session.run(AvgOut,         feed_dict=batch)
     intensity   =   session.run(MeanSqrGrad,    feed_dict=batch)
     uncertainty =   session.run(TraceCovar,     feed_dict=batch)
-
     print('loss         %.2f --- expected %.2f' % (sentiment,   ALPHA*A + BETA *B**2))
-    print('gradient     %.2f --- expected %.2f' % (intensity,   ALPHA**2 + 4.0*BETA **2*B**2))
-    print('covariance   %.2f --- expected %.2f' % (uncertainty, 1.0 + 4.0*B**2))
+    print('intensity    %.2f --- expected %.2f' % (intensity,   ALPHA**2 + 4.0*BETA **2*B**2))
+    print('uncertainty  %.2f --- expected %.2f' % (uncertainty, 1.0 + 4.0*B**2))
 
     passion     =   session.run(Passion,        feed_dict=batch)
     audacity    =   session.run(Audacity,       feed_dict=batch)
