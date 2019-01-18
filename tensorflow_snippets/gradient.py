@@ -1,29 +1,34 @@
 ''' author: samtenka
-    change: 2019-01-13
+    change: 2019-01-18
     create: 2019-01-11
     descrp: Illustrate how to use Tensorflow's automatic differentiation to compute bespoke gradient statistics.
             Given a loss function l(data, weights), where `data` is drawn from a fixed distribution and we imagine
             perturbing `weights` around a fixed initialization, we give unbiased estimates for these scalars: 
-                A. mean loss                                    {()}
-                B. square-norm of mean-gradient                 {(a)}{(a)}
-                C. trace of covariance of gradients             {(a)(a)} - {(a)}{(a)}
-                D. 1st order increase of (B) along gradient     2{(a)}{(ab)(b)}
-                E. 1st order increase of (C) along gradient     2{(a)}{(ab)}{(b)} - 2{(a)}{(ab)(b)}
+                A. mean loss                                    {()}                                    SENTIMENT
+                B. trace of square gradient                     {(a)}{(a)}                              INTENSITY
+                C. trace of covariance of gradients             {(a)(a)} - {(a)}{(a)}                   UNCERTAINTY
+                D. 1st order increase of (B) along gradient     2{(a)}{(ab)}{(b)}                       PASSION
+                E. 1st order increase of (C) along gradient     2{(a)}{(ab)(b)} - 2{(a)}{(ab)}{(b)}     AUDACITY
+                F. trace of hessian times square gradient       {(ab)}{(a)}{(b)}                        PASSION/2
+                G. trace of hessian times covariance            {(ab)}{(a)(b)} - {(ab)}{(a)}{(b)}       PERIL 
             Above, a sequence of k letters in parentheses indicates the rank-k tensor obtained by differentiating the
             loss k times with respect to weights.  The letters are to be read as tensor indices and contracted as usual
             (so, though not used here, a parenthesized expression could actually be a rank-(k minus 2) tensor etc).
             Curly braces indicate an expectation over the data distribution.  As another example, {(aa)} is the trace
-            of the expected hessian.  We call (D) `AUDACITY` and (E) `PASSION`.
+            of the expected hessian.  The rightmost column lists intuition-pumping names; for instance, we call (D)
+            `PASSION` and (E) `AUDACITY`.  Note finally that (D) and (F) are proportional. 
 
             For this demonstration, we write data=(noise_a, noise_b) and weights=(weights_a, weights_b), and we set
                 l(data, weights) = (alpha + noise_a) * weights_a + (beta + noise_b) * weights_b**2 
             We set the coefficients (alpha, beta) and the weight initialization (A, B) in the hyperparameter section
             below.  The data is distributed as normal spherical Gaussian.  In this case, an easily calculation shows: 
-                A. mean loss                                    {()}                                = alpha A + beta B^2
-                B. square-norm of mean-gradient                 {(a)}{(a)}                          = alpha^2 + 4 beta^2 B^2
-                C. trace of covariance of gradients             {(a)(a)} - {(a)}{(a)}               = 1 + 4 B^2
-                D. 1st order increase of (B) along gradient     2{(a)}{(ab)(b)}                     = 16 beta^3 b^2 
-                E. 1st order increase of (C) along gradient     2{(a)}{(ab)}{(b)} - 2{(a)}{(ab)(b)} = 16 beta b^2
+                A. SENTIMENT    {()}                                     = alpha A + beta B^2
+                B. INTENSITY    {(a)}{(a)}                               = alpha^2 + 4 beta^2 B^2
+                C. UNCERTAINTY  {(a)(a)} - {(a)}{(a)}                    = 1 + 4 B^2
+                D. PASSION      2{(a)}{(ab)}{(b)}                        = 16 beta^3 B^2  <---+
+                E. AUDACITY     2{(a)}{(ab)(b)} - 2{(a)}{(ab)}{(b)}      = 16 beta B^2        |
+                F. PASSION/2    {(ab)}{(a)}{(b)}                         = -------------------+ divided by 2 = 8 beta^3 B^2
+                G. PERIL        {(ab)}{(a)(b)} - {(ab)}{(a)}{(b)}        = 8 beta B^2 
 '''
 
 import tensorflow as tf
@@ -49,7 +54,8 @@ B = 1.0
 
 NoiseA = tf.placeholder(tf.float32, shape=[BATCH_SIZE])
 NoiseB = tf.placeholder(tf.float32, shape=[BATCH_SIZE])
-WeightA = tf.placeholder(tf.float32, shape=[BATCH_SIZE]) # TODO: explain COPYING
+# below, we use BATCH_SIZE many copies of Weight to address the egregious summing operation implicit in `tf.gradients`
+WeightA = tf.placeholder(tf.float32, shape=[BATCH_SIZE])
 WeightB = tf.placeholder(tf.float32, shape=[BATCH_SIZE])
 Weights = [WeightA, WeightB]
 
@@ -79,6 +85,7 @@ def statistics(x, y):
 
 AvgOut = tf.reduce_mean(Outputs)
 Gradients = tf.transpose(tf.convert_to_tensor(tf.gradients(Outputs, Weights)))
+
 AvgGrad = tf.reduce_mean(Gradients, axis=1)
 
 MeanSqrGrad, TraceCovar, AvgSqrNorm, SqrAvgNorm = statistics(Gradients, Gradients)
@@ -89,6 +96,15 @@ GradTraceCovar =  tf.transpose(tf.convert_to_tensor(tf.gradients(TraceCovar, Wei
 
 Passion, _, __, ___ = statistics(Gradients, GradMeanSqrGrad)
 Audacity, _, __, ___ = statistics(Gradients, GradTraceCovar)
+
+# to estimate Peril, we split the batch into two subbatches and invoke multiplicativity of expectation for independents
+Gradients_0 = Gradients[:BATCH_SIZE//2, :] 
+Gradients_1 = Gradients[BATCH_SIZE//2:, :] 
+InterSubbatchGradientDots = tf.reduce_sum(tf.multiply(Gradients_0, Gradients_1), axis=1)
+# HessesTimesGrads is the derivative with respect to subbatch_0 of (gradients_0 * gradients_1):
+HessesTimesGrads = tf.transpose(tf.convert_to_tensor(tf.gradients(InterSubbatchGradientDots, Weights)))[BATCH_SIZE//2:, :]
+UncenteredPeril = tf.reduce_mean(tf.reduce_sum(tf.multiply(Gradients_1, HessesTimesGrads), axis=1))
+Peril = UncenteredPeril - Passion/2 
 
 
 
@@ -103,15 +119,18 @@ def get_batch(batch_size=BATCH_SIZE):
 
 with tf.Session() as session:
     batch = get_batch()
-    out =   session.run(AvgOut,         feed_dict=batch)
-    gg  =   session.run(MeanSqrGrad,    feed_dict=batch)
-    cc  =   session.run(TraceCovar,     feed_dict=batch)
+    sentiment   =   session.run(AvgOut,         feed_dict=batch)
+    intensity   =   session.run(MeanSqrGrad,    feed_dict=batch)
+    uncertainty =   session.run(TraceCovar,     feed_dict=batch)
 
-    print('loss         %.2f --- expected %.2f' % ( out, ALPHA*A + BETA *B**2))
-    print('gradient     %.2f --- expected %.2f' % (  gg, ALPHA**2 + 4.0*BETA **2*B**2))
-    print('covariance   %.2f --- expected %.2f' % (  cc, 1.0 + 4.0*B**2))
+    print('loss         %.2f --- expected %.2f' % (sentiment,   ALPHA*A + BETA *B**2))
+    print('gradient     %.2f --- expected %.2f' % (intensity,   ALPHA**2 + 4.0*BETA **2*B**2))
+    print('covariance   %.2f --- expected %.2f' % (uncertainty, 1.0 + 4.0*B**2))
 
-    pssn=   session.run(Passion,        feed_dict=batch)
-    auda=   session.run(Audacity,       feed_dict=batch)
-    print('passion      %.2f --- expected %.2f' % (pssn, 16.0*BETA **3*B**2))
-    print('adventure    %.2f --- expected %.2f' % (auda, 16.0*BETA *B**2))
+    passion     =   session.run(Passion,        feed_dict=batch)
+    audacity    =   session.run(Audacity,       feed_dict=batch)
+    print('passion      %.2f --- expected %.2f' % (passion,     16.0*BETA **3*B**2))
+    print('audacity     %.2f --- expected %.2f' % (audacity,    16.0*BETA *B**2))
+
+    peril       =   session.run(Peril,          feed_dict=batch)
+    print('peril        %.2f --- expected %.2f' % (peril,    8.0*BETA *B**2))
