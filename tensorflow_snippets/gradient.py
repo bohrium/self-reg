@@ -1,9 +1,9 @@
 ''' author: samtenka
-    change: 2019-01-18
+    change: 2019-01-22
     create: 2019-01-11
     descrp: Illustrate how to use Tensorflow's automatic differentiation to compute bespoke gradient statistics.
-            Given a loss function l(data, weights), where `data` is drawn from a fixed distribution and we imagine
-            perturbing `weights` around a fixed initialization, we give unbiased estimates for these scalars: 
+            Given a loss function l(data, weights), where `data` has a fixed distribution and we imagine perturbing
+            `weights` around a fixed initialization, we give UNBIASED estimates for these scalars in O(BATCHSIZE) time: 
                 A. mean loss                                    {()}                                    SENTIMENT
                 B. trace of square gradient                     {(a)}{(a)}                              INTENSITY
                 C. trace of covariance of gradients             {(a)(a)} - {(a)}{(a)}                   UNCERTAINTY
@@ -21,7 +21,7 @@
             For this demonstration, we write data=(noise_a, noise_b) and weights=(weights_a, weights_b), and we set
                 l(data, weights) = (alpha + noise_a) * weights_a + (beta + noise_b) * weights_b**2 
             We set the coefficients (alpha, beta) and the weight initialization (A, B) in the hyperparameter section
-            below.  The data is distributed as normal spherical Gaussian.  In this case, an easily calculation shows: 
+            below.  The data is distributed as a normal spherical Gaussian.  In this case, a routine calculation shows: 
                 A. SENTIMENT    {()}                                     = alpha A + beta B^2
                 B. INTENSITY    {(a)}{(a)}                               = alpha^2 + 4 beta^2 B^2
                 C. UNCERTAINTY  {(a)(a)} - {(a)}{(a)}                    = 1 + 4 B^2
@@ -123,7 +123,7 @@ Gradients_0 = Gradients[:BATCH_SIZE//2, :]
 Gradients_1 = Gradients[BATCH_SIZE//2:, :] 
 InterSubbatchGradientDots = tf.reduce_sum(tf.multiply(Gradients_0, Gradients_1), axis=1)
 # HessesTimesGrads is the derivative with respect to subbatch_0 of (gradients_0 * gradients_1):
-HessesTimesGrads = tf.transpose(tf.convert_to_tensor(tf.gradients(InterSubbatchGradientDots, Weights)))[BATCH_SIZE//2:, :]
+HessesTimesGrads = tf.transpose(tf.convert_to_tensor(tf.gradients(InterSubbatchGradientDots, Weights)))[:BATCH_SIZE//2, :]
 UncenteredPeril = tf.reduce_mean(tf.reduce_sum(tf.multiply(Gradients_1, HessesTimesGrads), axis=1))
 Peril = UncenteredPeril - Passion/2 
 
