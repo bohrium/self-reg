@@ -1,0 +1,76 @@
+\documentclass[12pt]{article}
+\usepackage{sammath}
+\usepackage[formats]{listings}
+
+\lstdefineformat{C}{%
+\{=\string\indent,%
+\}=[;]\newline\noindent\string\newline,%
+\};=\noindent\string%
+}
+
+\begin{document}
+    \customtitle{The Datatype of Loss Landscapes}
+    \customsubtitle{Dan Roberts (\texttt{roberts@ias.edu}) and Samuel Tenka (\texttt{coli@mit.edu})}
+
+    \customsection{Loss Landscapes}
+        What is the natural setting for a stochastic gradient-based optimizer such as SGD?
+        A typical implementation might have this pseudocode:
+        \begin{lstlisting}[language=C,format=C,mathescape=true,basicstyle=\ttfamily\footnotesize]
+            Weight learn(Data$^N$ $X$, Weight $w_0$, float(*$l$)(Data, Weight), int $E$) {
+                Weight $w = w_0$;
+                for (int $e=0$; $e\neq E$; $e=e+1$) {
+                    shuffle($X$);
+                    for (Data $x$: $X$) {
+                        Covector $g = \nabla_w l(x, w)$;
+                        $w = \exp_w(-\text{\texttt{transpose}}(g))$; 
+                    }
+                }
+                return $w$;
+            }
+        \end{lstlisting}
+        We thus see that the key ingredients are
+        \begin{itemize}\setlength\itemsep{-0.5em}
+            \item a probability space $X$ of data;
+            \item a manifold $W$ of weights that is equipped with
+            \item a Riemannian (inverse) metric $\texttt{transpose}: T^*W\to TW$ to turn covectors into vectors
+                    (the learning rate is part of this data) that in turn induces 
+            \item the flow $\exp:TW \to W$ to update along a vector; and 
+            \item a loss function $l: X\times W \to \RR$.
+        \end{itemize}
+        One wishes for $W$ to be metrically complete, for $w\mapsto l(x, w)$ to be smooth for all $x$,
+        and for each random variable $\nabla^a_w \nabla^b_w \cdots \nabla^z_w l(x, w)$ to be subgaussian for all $w$.
+        In this case, let us call the listed data $(X, W, l)$ a {\bf loss landscape}. 
+        Traditionally, $W$ has been either curved according to a Fisher metric or else flat.
+        The purpose of this note is to unify and clarify these and all other reasonable possibilities. 
+
+        Let us write $\ang{f(x)}$ for the expectation of $f(x)$, and let us notate derivatives such as
+        $\nabla^a_w \nabla^a_w \nabla^b_w \nabla^c_w l(x, w)$ by parenthesized sequences of indices such as $(aabc)$.
+        By subgaussianity, every grammatical expression of $\ang{}$s and $()$s has a finite value. 
+        For example, we may consider the {\bf hessian} $H=\ang{(ab)}$ or the {\bf covariance} $C=\ang{(a)(b)}-\ang{(a)}\ang{(b)}$.
+        Though both $H$ and $C$ are symmetric $2$-tensors on $TW$, their meanings greatly differ.
+        For instance, $H$ scales linearly with $l$ while $C$ scales quadratically.
+        Table 0 makes such scalings vivid by imagining that the loss has units of dollars.
+        \setcounter{table}{-1}
+        \begin{table}[h!]
+            \begin{tabular}{c||cccc}
+                {\bf DIMENSIONS}& length$^{-2}$     & length$^{-1}$     & length$^0$        & length$^1$        \\ \hline \hline
+                dollars$^{-1}$  &                   &                   & learning rate     & gas mileage       \\
+                dollars$^0$     & metric            &                   & \fbox{unitless}   & weight update     \\
+                dollars$^1$     & hessian           & gradient          & loss              &                   \\
+                dollars$^2$     & covariance        &                   & trace covariance  &                   
+            \end{tabular}
+            \caption{
+                This table indicates the scaling properties of selected objects
+                so that the reader may orient her intuition for dimensional analysis.
+                Many interesting objects are left unlisted: for instance,
+                the variance $\ang{()()}-\ang{()}\ang{()}$ of the loss would inhabit the trace-covariance's cell, and
+                the intensity $\ang{(a)}\ang{(a)}$ of the mean gradient would inhabit the covariance's cell.
+            }
+        \end{table}
+
+    \customsection{Germs}
+    \customsection{Taylor Expansion in the Metric}
+    \customsection{Example: The Valley of Death}
+    \customsection{Geometry as Prior}
+
+\end{document}
