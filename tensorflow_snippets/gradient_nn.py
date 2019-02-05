@@ -15,20 +15,8 @@
             loss k times with respect to weights.  The letters are to be read as tensor indices and contracted as usual
             (so, though not used here, a parenthesized expression could actually be a rank-(k minus 2) tensor etc).
             Curly braces indicate an expectation over the data distribution.  As another example, {(aa)} is the trace
-            of the expected hessian.  The rightmost column lists intuition-pumping names; for instance, we call (D)
+            of the hessian.  The rightmost column lists intuition-pumping names; for instance, we call (D)
             `PASSION` and (E) `AUDACITY`.  Note finally that (D) and (F) are proportional. 
-
-            For this demonstration, we write data=(noise_a, noise_b) and weights=(weights_a, weights_b), and we set
-                l(data, weights) = (alpha + noise_a) * weights_a + (beta + noise_b) * weights_b**2 
-            We set the coefficients (alpha, beta) and the weight initialization (A, B) in the hyperparameter section
-            below.  The data is distributed as a normal spherical Gaussian.  In this case, a routine calculation shows: 
-                A. SENTIMENT    {()}                                     = alpha A + beta B^2
-                B. INTENSITY    {(a)}{(a)}                               = alpha^2 + 4 beta^2 B^2
-                C. UNCERTAINTY  {(a)(a)} - {(a)}{(a)}                    = 1 + 4 B^2
-                D. PASSION      2{(a)}{(ab)}{(b)}                        = 16 beta^3 B^2  <---+
-                E. AUDACITY     2{(a)}{(ab)(b)} - 2{(a)}{(ab)}{(b)}      = 16 beta B^2        |
-                F. PASSION/2    {(ab)}{(a)}{(b)}                         = -------------------+ divided by 2 = 8 beta^3 B^2
-                G. PERIL        {(ab)}{(a)(b)} - {(ab)}{(a)}{(b)}        = 8 beta B^2 
 '''
 
 import tensorflow as tf
@@ -40,7 +28,7 @@ import numpy as np
 #            0. HYPERPARAMETERS                                                #
 ################################################################################
 
-BATCH_SIZE = 65536 
+BATCH_SIZE = 256 
 ALPHA = 3.0
 BETA  = 2.0
 A = 1.0
@@ -128,11 +116,13 @@ def gradient_stats(Losses, Weights):
 #            2. DEFINE TOY LOSS LANDSCAPE                                      #
 ################################################################################
 
-NoiseA = tf.placeholder(tf.float32, shape=[BATCH_SIZE])
-NoiseB = tf.placeholder(tf.float32, shape=[BATCH_SIZE])
+Noise = tf.placeholder(tf.float32, shape=[BATCH_SIZE, 1, 8])
 # below, we use BATCH_SIZE many copies of Weight to address the egregious summing operation implicit in `tf.gradients`
-Weights = tf.placeholder(tf.float32, shape=[2, BATCH_SIZE]) # [WeightA, WeightB]
-Losses = (ALPHA + NoiseA) * Weights[0] + (BETA  + NoiseB) * tf.square(Weights[1])
+Weights = tf.placeholder(tf.float32, shape=[64+8, BATCH_SIZE])
+WeightA = tf.reshape(tf.transpose(Weights[:64, :], perm=[1, 0]), [BATCH_SIZE, 8, 8]) 
+WeightB = tf.reshape(tf.transpose(Weights[64:64+8, :], perm=[1, 0]), [BATCH_SIZE, 8, 1]) 
+Hidden = tf.math.tanh(tf.matmul(Noise, WeightA))  
+Losses = tf.reshape(tf.square(tf.matmul(Hidden, WeightB)), [BATCH_SIZE])
 
 Sentiment, Intensity, Uncertainty, Passion, Audacity, Peril = gradient_stats(Losses, Weights)
 
@@ -144,11 +134,13 @@ Sentiment, Intensity, Uncertainty, Passion, Audacity, Peril = gradient_stats(Los
 
 def get_batch(batch_size=BATCH_SIZE):
     ''' return (independent) noise samples in the format of a tensorflow feed_dict '''
-    noise_a = np.random.randn(batch_size) 
-    noise_b = np.random.randn(batch_size) 
-    return {NoiseA:noise_a, NoiseB:noise_b, Weights:np.stack([A*np.ones(batch_size), B*np.ones(batch_size)], axis=0)}
+    noise = np.random.randn(batch_size, 1, 8)  
+    weights = np.ones((64+8, batch_size), np.float32) / 8.0**0.5
+    return {Noise:noise, Weights:weights}
 
 with tf.Session() as session:
+    session.run(tf.global_variables_initializer())
+
     batch = get_batch()
 
     # Though, for the purpose of testing, we compute the following 7 scalars in independent session-runs, one would in
@@ -156,14 +148,13 @@ with tf.Session() as session:
     sentiment   =   session.run(Sentiment,      feed_dict=batch)
     intensity   =   session.run(Intensity,      feed_dict=batch)
     uncertainty =   session.run(Uncertainty,    feed_dict=batch)
-    print('loss         %.2f --- expected %.2f' % (sentiment,   ALPHA*A + BETA *B**2))
-    print('intensity    %.2f --- expected %.2f' % (intensity,   ALPHA**2 + 4.0*BETA **2*B**2))
-    print('uncertainty  %.2f --- expected %.2f' % (uncertainty, 1.0 + 4.0*B**2))
+    passion     =   session.run(Passion,    feed_dict=batch)
+    audacity    =   session.run(Audacity,   feed_dict=batch)
+    peril       =   session.run(Peril,      feed_dict=batch)
 
-    passion     =   session.run(Passion,        feed_dict=batch)
-    audacity    =   session.run(Audacity,       feed_dict=batch)
-    print('passion      %.2f --- expected %.2f' % (passion,     16.0*BETA **3*B**2))
-    print('audacity     %.2f --- expected %.2f' % (audacity,    16.0*BETA *B**2))
-
-    peril       =   session.run(Peril,          feed_dict=batch)
-    print('peril        %.2f --- expected %.2f' % (peril,    8.0*BETA *B**2))
+    print('loss         %.2f --- ' % sentiment      )
+    print('intensity    %.2f --- ' % intensity      )
+    print('uncertainty  %.2f --- ' % uncertainty    )
+    print('passion      %.2f --- ' % passion        ) 
+    print('audacity     %.2f --- ' % audacity       ) 
+    print('peril        %.2f --- ' % peril          )
