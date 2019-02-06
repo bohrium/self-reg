@@ -112,49 +112,50 @@ def gradient_stats(Losses, Weights):
 
 
 
-################################################################################
-#            2. DEFINE TOY LOSS LANDSCAPE                                      #
-################################################################################
-
-Noise = tf.placeholder(tf.float32, shape=[BATCH_SIZE, 1, 8])
-# below, we use BATCH_SIZE many copies of Weight to address the egregious summing operation implicit in `tf.gradients`
-Weights = tf.placeholder(tf.float32, shape=[64+8, BATCH_SIZE])
-WeightA = tf.reshape(tf.transpose(Weights[:64, :], perm=[1, 0]), [BATCH_SIZE, 8, 8]) 
-WeightB = tf.reshape(tf.transpose(Weights[64:64+8, :], perm=[1, 0]), [BATCH_SIZE, 8, 1]) 
-Hidden = tf.math.tanh(tf.matmul(Noise, WeightA))  
-Losses = tf.reshape(tf.square(tf.matmul(Hidden, WeightB)), [BATCH_SIZE])
-
-Sentiment, Intensity, Uncertainty, Passion, Audacity, Peril = gradient_stats(Losses, Weights)
-
-
-
-################################################################################
-#            3. RUN SESSION                                                    #
-################################################################################
-
-def get_batch(batch_size=BATCH_SIZE):
-    ''' return (independent) noise samples in the format of a tensorflow feed_dict '''
-    noise = np.random.randn(batch_size, 1, 8)  
-    weights = np.ones((64+8, batch_size), np.float32) / 8.0**0.5
-    return {Noise:noise, Weights:weights}
-
-with tf.Session() as session:
-    session.run(tf.global_variables_initializer())
-
-    batch = get_batch()
-
-    # Though, for the purpose of testing, we compute the following 7 scalars in independent session-runs, one would in
-    #       practice use a single call: `session.run([AvgOut, MeanSqrGrad, ...], ...)`
-    sentiment   =   session.run(Sentiment,      feed_dict=batch)
-    intensity   =   session.run(Intensity,      feed_dict=batch)
-    uncertainty =   session.run(Uncertainty,    feed_dict=batch)
-    passion     =   session.run(Passion,    feed_dict=batch)
-    audacity    =   session.run(Audacity,   feed_dict=batch)
-    peril       =   session.run(Peril,      feed_dict=batch)
-
-    print('loss         %.2f --- ' % sentiment      )
-    print('intensity    %.2f --- ' % intensity      )
-    print('uncertainty  %.2f --- ' % uncertainty    )
-    print('passion      %.2f --- ' % passion        ) 
-    print('audacity     %.2f --- ' % audacity       ) 
-    print('peril        %.2f --- ' % peril          )
+if __name__ == '__main__':
+    ################################################################################
+    #            2. DEFINE TOY LOSS LANDSCAPE                                      #
+    ################################################################################
+    
+    Noise = tf.placeholder(tf.float32, shape=[BATCH_SIZE, 1, 8])
+    # below, we use BATCH_SIZE many copies of Weight to address the egregious summing operation implicit in `tf.gradients`
+    Weights = tf.placeholder(tf.float32, shape=[64+8, BATCH_SIZE])
+    WeightA = tf.reshape(tf.transpose(Weights[:64, :], perm=[1, 0]), [BATCH_SIZE, 8, 8]) 
+    WeightB = tf.reshape(tf.transpose(Weights[64:64+8, :], perm=[1, 0]), [BATCH_SIZE, 8, 1]) 
+    Hidden = tf.math.tanh(tf.matmul(Noise, WeightA))  
+    Losses = tf.reshape(tf.square(tf.matmul(Hidden, WeightB)), [BATCH_SIZE])
+    
+    Sentiment, Intensity, Uncertainty, Passion, Audacity, Peril = gradient_stats(Losses, Weights)
+    
+    
+    
+    ################################################################################
+    #            3. RUN SESSION                                                    #
+    ################################################################################
+    
+    def get_batch(batch_size=BATCH_SIZE):
+        ''' return (independent) noise samples in the format of a tensorflow feed_dict '''
+        noise = np.random.randn(batch_size, 1, 8)  
+        weights = np.ones((64+8, batch_size), np.float32) / 8.0**0.5
+        return {Noise:noise, Weights:weights}
+    
+    with tf.Session() as session:
+        session.run(tf.global_variables_initializer())
+    
+        batch = get_batch()
+    
+        # Though, for the purpose of testing, we compute the following 7 scalars in independent session-runs, one would in
+        #       practice use a single call: `session.run([AvgOut, MeanSqrGrad, ...], ...)`
+        sentiment   =   session.run(Sentiment,      feed_dict=batch)
+        intensity   =   session.run(Intensity,      feed_dict=batch)
+        uncertainty =   session.run(Uncertainty,    feed_dict=batch)
+        passion     =   session.run(Passion,    feed_dict=batch)
+        audacity    =   session.run(Audacity,   feed_dict=batch)
+        peril       =   session.run(Peril,      feed_dict=batch)
+    
+        print('loss         %.2f --- ' % sentiment      )
+        print('intensity    %.2f --- ' % intensity      )
+        print('uncertainty  %.2f --- ' % uncertainty    )
+        print('passion      %.2f --- ' % passion        ) 
+        print('audacity     %.2f --- ' % audacity       ) 
+        print('peril        %.2f --- ' % peril          )

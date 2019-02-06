@@ -37,27 +37,14 @@ import numpy as np
 
 
 ################################################################################
-#            0. HYPERPARAMETERS                                                #
-################################################################################
-
-BATCH_SIZE = 65536 
-ALPHA = 3.0
-BETA  = 2.0
-A = 1.0
-B = 1.0
-
-
-
-################################################################################
-#            1. DEFINE STATISTICS                                              #
+#            0. DEFINE STATISTICS                                              #
 ################################################################################
 
     #--------------------------------------------------------------------------#
-    #                1.0 define unbiased estimator helper function             #
+    #                0.0 define unbiased estimator helper function             #
     #--------------------------------------------------------------------------#
 
-BESSEL_FACTOR = BATCH_SIZE / (BATCH_SIZE-1)
-def second_order_stats(x, y): 
+def second_order_stats(x, y, BATCH_SIZE): 
     ''' Return unbiased estimates of
             PRODUCT_MEAN =  trace({x}{y}),
             COVARIANCE   =  trace({xy}-{x}{y}), and
@@ -65,6 +52,8 @@ def second_order_stats(x, y):
             PRODUCT_AVG  =  trace({x}{y})
         for given tensors x and y of shape (nb samples)-by-(dim)
     '''
+    BESSEL_FACTOR = BATCH_SIZE / (BATCH_SIZE-1)
+
     avg_x = tf.reduce_mean(x, axis=0)
     avg_y = tf.reduce_mean(y, axis=0) if x is not y else avg_x
 
@@ -76,42 +65,48 @@ def second_order_stats(x, y):
 
     return product_mean, covariance, avg_product, product_avg
 
-def gradient_stats(Losses, Weights): 
+def gradient_stats(Losses, Weights, BATCH_SIZE): 
     ''' Given loss batch and weight tensors, return unbiased estimates of
         sentiment, intensity, uncertainty, passion, audacity, and peril.
         Assumes that Weights has shape (nb_weights, batch_size), i.e. consists of weight replicas.
+        Assumes batch size is even.
     '''
+
+    assert(BATCH_SIZE % 2 == 0)
+
     #--------------------------------------------------------------------------#
-    #                1.1 compute SENTIMENT                                     #
+    #                0.1 compute SENTIMENT                                     #
     #--------------------------------------------------------------------------#
     
-    # use of `Linker` forces tf's gradient computations to return an actual 0 instead of `None` when there is no dependency
+    # use of `Linker` forces tf's gradient computations to return an actual 0 instead of `None` when there is no
+    #       dependency
     Linker = 0.0*tf.reduce_sum(tf.square(Weights))
     LinkedLosses = Losses + Linker
     AvgLoss = tf.reduce_mean(LinkedLosses)
     
     #--------------------------------------------------------------------------#
-    #                1.2 compute INTENSITY and UNCERTAINTY                     #
+    #                0.2 compute INTENSITY and UNCERTAINTY                     #
     #--------------------------------------------------------------------------#
     
     Gradients = tf.transpose(tf.convert_to_tensor(tf.gradients(LinkedLosses, Weights)))
-    MeanSqrGrad, TraceCovar, AvgSqrNorm, SqrAvgNorm = second_order_stats(Gradients, Gradients)
+    MeanSqrGrad, TraceCovar, AvgSqrNorm, SqrAvgNorm = second_order_stats(Gradients, Gradients, BATCH_SIZE)
     
     #--------------------------------------------------------------------------#
-    #                1.3 compute PASSION and AUDACITY                          #
+    #                0.3 compute PASSION and AUDACITY                          #
     #--------------------------------------------------------------------------#
     
     # below, we multiply by BATCH_SIZE to counter tf.gradients' averaging behavior
     GradMeanSqrGrad = tf.transpose(tf.convert_to_tensor(tf.gradients(MeanSqrGrad, Weights))) * BATCH_SIZE
     GradTraceCovar =  tf.transpose(tf.convert_to_tensor(tf.gradients(TraceCovar, Weights))) * BATCH_SIZE
-    Passion, _, __, ___ = second_order_stats(Gradients, GradMeanSqrGrad)
-    Audacity, _, __, ___ = second_order_stats(Gradients, GradTraceCovar)
+    Passion, _, __, ___ = second_order_stats(Gradients, GradMeanSqrGrad, BATCH_SIZE)
+    Audacity, _, __, ___ = second_order_stats(Gradients, GradTraceCovar, BATCH_SIZE)
     
     #--------------------------------------------------------------------------#
-    #                1.4 compute PERIL                                         #
+    #                0.4 compute PERIL                                         #
     #--------------------------------------------------------------------------#
     
-    # to estimate Peril, we split the batch into two subbatches and invoke multiplicativity of expectation for independents
+    # to estimate Peril, we split the batch into two subbatches and invoke multiplicativity of expectation for
+    #       independents
     Gradients_0 = Gradients[:BATCH_SIZE//2, :] 
     Gradients_1 = Gradients[BATCH_SIZE//2:, :] 
     InterSubbatchGradientDots = tf.reduce_sum(tf.multiply(Gradients_0, Gradients_1), axis=1)
@@ -125,45 +120,55 @@ def gradient_stats(Losses, Weights):
 
 
 ################################################################################
-#            2. DEFINE TOY LOSS LANDSCAPE                                      #
+#            1. RUN ON TOY LOSS LANDSCAPE                                      #
 ################################################################################
+ 
+if __name__ == '__main__':
 
-NoiseA = tf.placeholder(tf.float32, shape=[BATCH_SIZE])
-NoiseB = tf.placeholder(tf.float32, shape=[BATCH_SIZE])
-# below, we use BATCH_SIZE many copies of Weight to address the egregious summing operation implicit in `tf.gradients`
-Weights = tf.placeholder(tf.float32, shape=[2, BATCH_SIZE]) # [WeightA, WeightB]
-Losses = (ALPHA + NoiseA) * Weights[0] + (BETA  + NoiseB) * tf.square(Weights[1])
+    BATCH_SIZE = 4096
+    ALPHA = 3.0
+    BETA  = 2.0
+    A = 1.0
+    B = 1.0
 
-Sentiment, Intensity, Uncertainty, Passion, Audacity, Peril = gradient_stats(Losses, Weights)
+    #--------------------------------------------------------------------------#
+    #                1.0 define toy loss landscape                             #
+    #--------------------------------------------------------------------------#
+   
+    NoiseA = tf.placeholder(tf.float32, shape=[BATCH_SIZE])
+    NoiseB = tf.placeholder(tf.float32, shape=[BATCH_SIZE])
+    # below, we use BATCH_SIZE many copies of Weight to address the egregious summing operation implicit in
+    #       `tf.gradients`
+    Weights = tf.placeholder(tf.float32, shape=[2, BATCH_SIZE]) # i.e. [WeightA, WeightB]
+    Losses = (ALPHA + NoiseA) * Weights[0] + (BETA  + NoiseB) * tf.square(Weights[1])
+    
+    Sentiment, Intensity, Uncertainty, Passion, Audacity, Peril = gradient_stats(Losses, Weights, BATCH_SIZE)
+    
+    #--------------------------------------------------------------------------#
+    #                1.1 display stats on batch                                #
+    #--------------------------------------------------------------------------#
+   
+    def get_batch(batch_size=BATCH_SIZE):
+        ''' return (independent) noise samples in the format of a tensorflow feed_dict '''
+        noise_a = np.random.randn(batch_size) 
+        noise_b = np.random.randn(batch_size) 
+        return {NoiseA:noise_a, NoiseB:noise_b, Weights:np.stack([A*np.ones(batch_size), B*np.ones(batch_size)], axis=0)}
 
+    with tf.Session() as session:
+        batch = get_batch()
+    
+        # Though, for the purpose of testing, we compute the following 7 scalars in independent session-runs, one would
+        #       in practice use a single call: `session.run([AvgOut, MeanSqrGrad, ...], ...)`
+        sentiment   =   session.run(Sentiment,      feed_dict=batch)
+        intensity   =   session.run(Intensity,      feed_dict=batch)
+        uncertainty =   session.run(Uncertainty,    feed_dict=batch)
+        passion     =   session.run(Passion,        feed_dict=batch)
+        audacity    =   session.run(Audacity,       feed_dict=batch)
+        peril       =   session.run(Peril,          feed_dict=batch)
 
-
-################################################################################
-#            3. RUN SESSION                                                    #
-################################################################################
-
-def get_batch(batch_size=BATCH_SIZE):
-    ''' return (independent) noise samples in the format of a tensorflow feed_dict '''
-    noise_a = np.random.randn(batch_size) 
-    noise_b = np.random.randn(batch_size) 
-    return {NoiseA:noise_a, NoiseB:noise_b, Weights:np.stack([A*np.ones(batch_size), B*np.ones(batch_size)], axis=0)}
-
-with tf.Session() as session:
-    batch = get_batch()
-
-    # Though, for the purpose of testing, we compute the following 7 scalars in independent session-runs, one would in
-    #       practice use a single call: `session.run([AvgOut, MeanSqrGrad, ...], ...)`
-    sentiment   =   session.run(Sentiment,      feed_dict=batch)
-    intensity   =   session.run(Intensity,      feed_dict=batch)
-    uncertainty =   session.run(Uncertainty,    feed_dict=batch)
-    print('loss         %.2f --- expected %.2f' % (sentiment,   ALPHA*A + BETA *B**2))
-    print('intensity    %.2f --- expected %.2f' % (intensity,   ALPHA**2 + 4.0*BETA **2*B**2))
-    print('uncertainty  %.2f --- expected %.2f' % (uncertainty, 1.0 + 4.0*B**2))
-
-    passion     =   session.run(Passion,        feed_dict=batch)
-    audacity    =   session.run(Audacity,       feed_dict=batch)
-    print('passion      %.2f --- expected %.2f' % (passion,     16.0*BETA **3*B**2))
-    print('audacity     %.2f --- expected %.2f' % (audacity,    16.0*BETA *B**2))
-
-    peril       =   session.run(Peril,          feed_dict=batch)
-    print('peril        %.2f --- expected %.2f' % (peril,    8.0*BETA *B**2))
+        print('sentiment    %6.2f --- expected %6.2f' % (sentiment,   ALPHA*A + BETA *B**2))
+        print('intensity    %6.2f --- expected %6.2f' % (intensity,   ALPHA**2 + 4.0*BETA **2*B**2))
+        print('uncertainty  %6.2f --- expected %6.2f' % (uncertainty, 1.0 + 4.0*B**2))
+        print('passion      %6.2f --- expected %6.2f' % (passion,     16.0*BETA **3*B**2))
+        print('audacity     %6.2f --- expected %6.2f' % (audacity,    16.0*BETA *B**2))
+        print('peril        %6.2f --- expected %6.2f' % (peril,       8.0*BETA *B**2))
