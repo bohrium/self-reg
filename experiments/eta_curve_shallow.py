@@ -3,13 +3,13 @@
     create: 2017-10-07
     descrp: Compare SGD and GD out-of-sample performances (for a shallow dense network on small MNIST training sets)
             over a log-spaced range of learning rates, then APPEND summary statistics to `results.txt`.  To run, type:
-                python eta_curve.py 1000 128 0.00001 0.01 30 64 results.txt 
+                python eta_curve_shallow.py 1000 10 0.000 0.001 10 32 results_shallow.txt 
             The    1000 represents the number of trials to perform per experimental condition;
-            the     128 represents the training set size;
-            the 0.00001 represents the starting learning rate to sweep from;
-            the    0.01 represents the ending learning rate to sweep to;
-            the      30 represents (one less than) the number of learning rates to sweep through; and
-            the      64 represents the desired floating point precision (32 or 64).
+            the      10 represents the training set size;
+            the   0.000 represents the starting learning rate to sweep from;
+            the   0.001 represents the ending learning rate to sweep to;
+            the      10 represents (one less than) the number of learning rates to sweep through; and
+            the      32 represents the desired floating point precision (32 or 64).
 
             
 '''
@@ -107,25 +107,18 @@ class Classifier(object):
         self.TrueInputs = tf.placeholder(precision, shape=[None, 28*28])
         self.TrueOutputs= tf.placeholder(precision, shape=[None, 10])
 
-        WeightsA= tf.get_variable('Wa', shape=[  28*28,  64], dtype=precision)
-        BiasesA = tf.get_variable('Ba', shape=[          64], dtype=precision)
-        WeightsB= tf.get_variable('Wd', shape=[     64,  10], dtype=precision)
-        BiasesB = tf.get_variable('Bd', shape=[          10], dtype=precision)
+        WeightsA=self.WeightsA= tf.get_variable('Wa', shape=[  28*28,  10], dtype=precision)
+        BiasesA =self.BiasesA = tf.get_variable('Ba', shape=[          10], dtype=precision)
 
-        self.InitWeightsA= tf.placeholder(precision, shape=[  28*28,  64])
-        self.InitBiasesA = tf.placeholder(precision, shape=[          64])
-        self.InitWeightsB= tf.placeholder(precision, shape=[     64,  10])
-        self.InitBiasesB = tf.placeholder(precision, shape=[          10])
+        self.InitWeightsA= tf.placeholder(precision, shape=[  28*28,  10])
+        self.InitBiasesA = tf.placeholder(precision, shape=[          10])
         self.Initializer = tf.tuple([
             tf.assign(WeightsA, self.InitWeightsA),
             tf.assign(BiasesA, self.InitBiasesA),
-            tf.assign(WeightsB, self.InitWeightsB),
-            tf.assign(BiasesB, self.InitBiasesB)
         ])
 
-        HiddenLayerA = slrelu(tf.matmul(self.TrueInputs, WeightsA) + BiasesA)
-        HiddenLayerB = tf.matmul(HiddenLayerA, WeightsB) + BiasesB
-        self.PredictedLogits = HiddenLayerB
+        HiddenLayerA = tf.matmul(self.TrueInputs, WeightsA) + BiasesA
+        self.PredictedLogits = HiddenLayerA
 
     def create_trainer(self, precision=tf.float32):
         ''' Define the loss and corresponding gradient-based update.  The difference between gd and sgd is not codified
@@ -139,7 +132,17 @@ class Classifier(object):
         self.Loss = tf.reduce_mean(CrossEntropies)
         
         self.LearningRate = tf.placeholder(dtype=precision)
-        self.Update = tf.train.GradientDescentOptimizer(self.LearningRate).minimize(self.Loss)
+
+        self.GradientWeightsA = tf.convert_to_tensor(tf.gradients(self.Loss, self.WeightsA))[0]
+        self.GradientBiasesA = tf.convert_to_tensor(tf.gradients(self.Loss, self.BiasesA))[0]
+
+        self.Update = tf.tuple([
+            tf.assign(self.WeightsA, self.WeightsA - self.LearningRate * self.GradientWeightsA), 
+            tf.assign(self.BiasesA, self.BiasesA - self.LearningRate * self.GradientBiasesA) 
+        ])
+        self.Intensity =    tf.reduce_mean(tf.square(self.GradientWeightsA)) + \
+                            tf.reduce_mean(tf.square(self.GradientBiasesA))  
+        #tf.train.GradientDescentOptimizer(self.LearningRate).minimize(self.Loss)
         
         PredictionIsCorrect = tf.equal(tf.argmax(self.PredictedLogits, 1), tf.argmax(self.TrueOutputs, 1))
         self.Accuracy = tf.reduce_mean(tf.cast(PredictionIsCorrect, precision))
@@ -148,19 +151,15 @@ class Classifier(object):
         ''' Sample weights (as numpy arrays) distributed according to Glorot-Bengio recommended length scales.  These
             weights are intended to be initializers. 
         '''
-        wa = np.random.randn(28*28, 64) * np.sqrt(2.0 / (28*28 + 64))
-        ba = np.random.randn(64) * np.sqrt(2.0 / 64)
-        wb = np.random.randn(64, 10) * np.sqrt(2.0 / (64 + 10))
-        bb = np.random.randn(10) * np.sqrt(2.0 / 10)
-        return (wa, ba, wb, bb)
+        wa = 0.01 * np.random.randn(28*28, 10) * np.sqrt(2.0 / (28*28 + 10))
+        ba = 0.01 * np.random.randn(10) * np.sqrt(2.0 / 10)
+        return (wa, ba)
 
-    def initialize_weights(self, wa, ba, wb, bb): 
+    def initialize_weights(self, wa, ba): 
         ''' Initialize weights as a RUNTIME OPERATION, not by creating new graph nodes. '''
         self.session.run(self.Initializer, feed_dict={
             self.InitWeightsA:wa,
             self.InitBiasesA:ba,
-            self.InitWeightsB:wb,
-            self.InitBiasesB:bb
         })
 
     def run(self, dataset, ins_time, batch_size, learning_rate, opt='sgd'): 
@@ -169,11 +168,12 @@ class Classifier(object):
         '''
         for t in range(ins_time):
             batch_inputs, batch_outputs = dataset.get_batch(batch_size=batch_size, split='ins', opt=opt) 
-            self.session.run(self.Update, feed_dict={
+            inten, _ = self.session.run([self.Intensity, self.Update], feed_dict={
                 self.TrueInputs:batch_inputs,
                 self.TrueOutputs:batch_outputs,
                 self.LearningRate:learning_rate
             }) 
+        #print(inten)
         
         ins_inputs, ins_outputs = dataset.get_all('ins') 
         out_inputs, out_outputs = dataset.get_all('out') 

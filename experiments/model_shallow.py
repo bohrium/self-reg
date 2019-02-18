@@ -3,10 +3,10 @@
     create: 2017-10-07
     descrp: Compare SGD and GD out-of-sample performances (for a shallow dense network on small MNIST training sets)
             over a log-spaced range of learning rates, then APPEND summary statistics to `results.txt`.  To run, type:
-                python model.py 100 256 64 ests.txt
-            The     100 represents the number of trials to perform per experimental condition;
-            the     256 represents the training set size;
-            the      64 represents the desired floating point precision (32 or 64).
+                python model_shallow.py 10000 10 32 ests_shallow.txt
+            The   10000 represents the number of trials to perform
+            the      10 represents the training set size;
+            the      32 represents the desired floating point precision (32 or 64).
 
             
 '''
@@ -69,7 +69,6 @@ def gradient_stats(Losses, Weights, BATCH_SIZE):
     #       dependency
     Linker = 0.0*tf.reduce_sum(tf.square(Weights))
     LinkedLosses = Losses + Linker
-    print('avgx shape', avg_x.shape)
     AvgLoss = tf.reduce_mean(LinkedLosses)
     
     #--------------------------------------------------------------------------#
@@ -186,34 +185,29 @@ class Classifier(object):
         self.TrueInputs = tf.placeholder(precision, shape=[batch_size, 28*28])
         self.TrueOutputs= tf.placeholder(precision, shape=[batch_size, 10])
 
-        self.Weights = tf.get_variable('flattened', shape=[28*28*64 + 64 + 64*10 + 10, batch_size], dtype=precision)
+        self.Weights = tf.get_variable('flattened', shape=[28*28*10 + 10, batch_size], dtype=precision)
 
-        WeightsA = tf.transpose(tf.reshape(self.Weights[:28*28*64, :],                               [28*28, 64, batch_size]), perm=[2, 0, 1])
-        BiasesA =  tf.transpose(tf.reshape(self.Weights[ 28*28*64:28*28*64+64, :],                       [1, 64, batch_size]), perm=[2, 0, 1])
-        WeightsB = tf.transpose(tf.reshape(self.Weights[          28*28*64+64:28*28*64+64+64*10, :],    [64, 10, batch_size]), perm=[2, 0, 1])
-        BiasesB =  tf.transpose(tf.reshape(self.Weights[                      28*28*64+64+64*10:, :],    [1, 10, batch_size]), perm=[2, 0, 1])
+        WeightsA = tf.transpose(tf.reshape(self.Weights[:28*28*10, :],                               [28*28, 10, batch_size]), perm=[2, 0, 1])
+        BiasesA =  tf.transpose(tf.reshape(self.Weights[ 28*28*10:28*28*10+10, :],                       [1, 10, batch_size]), perm=[2, 0, 1])
 
-        self.InitWeightsA= tf.placeholder(precision, shape=[  28*28,  64])
-        self.InitBiasesA = tf.placeholder(precision, shape=[          64])
-        self.InitWeightsB= tf.placeholder(precision, shape=[     64,  10])
-        self.InitBiasesB = tf.placeholder(precision, shape=[          10])
-        self.Inits = tf.concat([tf.reshape(init, [-1]) for init in [self.InitWeightsA, self.InitBiasesA, self.InitWeightsB, self.InitBiasesB]], axis=0)
+        self.InitWeightsA= tf.placeholder(precision, shape=[  28*28,  10])
+        self.InitBiasesA = tf.placeholder(precision, shape=[          10])
+        self.Inits = tf.concat([tf.reshape(init, [-1]) for init in [self.InitWeightsA, self.InitBiasesA]], axis=0)
         self.Replicated = tf.stack([self.Inits]*batch_size, axis=1) 
         self.Initializer = tf.assign(self.Weights, self.Replicated)
 
-        HiddenLayerA = slrelu(tf.matmul(tf.stack([self.TrueInputs], axis=1), WeightsA) + BiasesA)
-        HiddenLayerB = tf.matmul(HiddenLayerA, WeightsB) + BiasesB
-        self.PredictedLogits = tf.reshape(HiddenLayerB, shape=[batch_size, 10])
+        HiddenLayerA = tf.matmul(tf.stack([self.TrueInputs], axis=1), WeightsA) + BiasesA
+        self.PredictedLogits = tf.reshape(HiddenLayerA, shape=[batch_size, 10])
 
     def create_trainer(self, batch_size, precision=tf.float32):
         ''' Define the loss and corresponding gradient-based update.  The difference between gd and sgd is not codified
             here; instead, the difference lies in the size and correlations between batches we use to train the
             classifier, i.e. in the values assigned to `TrueInputs` and `TrueOutputs` at each gradient update step.
         '''
-        CrossEntropies = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+        CrossEntropies = tf.nn.softmax_cross_entropy_with_logits(
             labels=self.TrueOutputs,
             logits=self.PredictedLogits
-        ))
+        )
         self.Loss = tf.reduce_mean(CrossEntropies)
         
         PredictionIsCorrect = tf.equal(tf.argmax(self.PredictedLogits, 1), tf.argmax(self.TrueOutputs, 1))
@@ -226,19 +220,15 @@ class Classifier(object):
         ''' Sample weights (as numpy arrays) distributed according to Glorot-Bengio recommended length scales.  These
             weights are intended to be initializers. 
         '''
-        wa = np.random.randn(28*28, 64) * np.sqrt(2.0 / (28*28 + 64))
-        ba = np.random.randn(64) * np.sqrt(2.0 / 64)
-        wb = np.random.randn(64, 10) * np.sqrt(2.0 / (64 + 10))
-        bb = np.random.randn(10) * np.sqrt(2.0 / 10)
-        return (wa, ba, wb, bb)
+        wa = 0.01 * np.random.randn(28*28, 10) * np.sqrt(2.0 / (28*28 + 10))
+        ba = 0.01 * np.random.randn(10) * np.sqrt(2.0 / 10)
+        return (wa, ba)
 
-    def initialize_weights(self, wa, ba, wb, bb): 
+    def initialize_weights(self, wa, ba):
         ''' Initialize weights as a RUNTIME OPERATION, not by creating new graph nodes. '''
         self.session.run(self.Initializer, feed_dict={
             self.InitWeightsA:wa,
             self.InitBiasesA:ba,
-            self.InitWeightsB:wb,
-            self.InitBiasesB:bb
         })
 
     def run(self, dataset): 
