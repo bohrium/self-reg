@@ -21,7 +21,7 @@ with open('results_shallow.txt') as f:
     paragraphs = filter(None, text.split('\n'))
     for p in paragraphs: 
         opt = re.search(r'OPT=(\S+)', p).group(1)
-        if opt != 'gd': continue
+        if opt != 'diff': continue
         metric = re.search(r'METRIC=(\S+):', p).group(1)
         if metric != 'OL': continue
         learning_rate = float(re.search(r'LEARNING_RATE=(\S+)', p).group(1))
@@ -44,19 +44,24 @@ red='#cc4444'
 green='#44cc44'
 blue='#4444cc'
 
-# PLOT experimental results:
 X = np.array(X)
-Y = np.array(Y)
-S = np.array(S)
-plt.fill(np.concatenate([X, X[::-1]]), np.concatenate([Y-S, (Y+S)[::-1]]), facecolor=blue, alpha=0.5)
-plt.plot(X, Y, color=blue)
 
 # PLOT theoretical predictions:
-TIME = 1
-E = SEN - X * TIME * INT
-S_ = 1.96 * (SEN_ + X * TIME * INT_) / MTRIALS**0.5
+N = T = 10
+E = SEN - X*T*INT + 0.5*X*X*( (T*(T-1)/4.0)*( PAS + PAS/2.0 ) + (T/2.0)*( PAS/2.0 + PER ) )
+E -= SEN - X*T*INT + 0.5*X*X*( (T*(T-1)/4.0)*( PAS + AUD/N + PAS/2.0 + PER/N ) + (T/2.0)*( PAS/2.0 + PER/N ) )
+#S_ = 1.96 * (SEN_ + X*T*INT_ + 0.5*X*X*( (T*(T-1)/4.0)*( PAS_ + PAS_/2.0 ) + (T/2.0)*( PAS_/2.0 + PER_ ) )) / MTRIALS**0.5
+S_ = 1.96 * (SEN_ + X*T*INT_ + 0.5*X*X*( (T*(T-1)/4.0)*( PAS_ + AUD_/N + PAS_/2.0 + PER_/N ) + (T/2.0)*( PAS_/2.0 + PER_/N ) )) / MTRIALS**0.5
 plt.fill(np.concatenate([X, X[::-1]]), np.concatenate([E-S_, (E+S_)[::-1]]), facecolor=green, alpha=0.5)
-plt.plot(X, E, color=green)
+
+# PLOT experimental results:
+Y = np.array(Y)
+S = np.array(S)
+e = 1e-5
+for (x,y,s) in zip(X, Y, S):
+    plt.plot([x, x], [y-s, y+s], color=blue)
+    plt.plot([x-e, x+e], [y-s, y-s], color=blue)
+    plt.plot([x-e, x+e], [y+s, y+s], color=blue)
 
 plt.xlabel('learning rate')
 plt.ylabel('out-of-sample cross entropy')
