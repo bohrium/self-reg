@@ -39,7 +39,7 @@ def second_order_stats(x, y, BATCH_SIZE):
             PRODUCT_AVG  =  trace({x}{y})
         for given tensors x and y of shape (nb samples)-by-(dim)
     '''
-    BESSEL_FACTOR = BATCH_SIZE / (BATCH_SIZE-1)
+    BESSEL_FACTOR = float(BATCH_SIZE) / (BATCH_SIZE-1)
 
     avg_x = tf.reduce_mean(x, axis=0)
     avg_y = tf.reduce_mean(y, axis=0) if x is not y else avg_x
@@ -56,10 +56,10 @@ def gradient_stats(Losses, Weights, BATCH_SIZE):
     ''' Given loss batch and weight tensors, return unbiased estimates of
         sentiment, intensity, uncertainty, passion, audacity, and peril.
         Assumes that Weights has shape (nb_weights, batch_size), i.e. consists of weight replicas.
-        Assumes batch size is even.
+        Assumes batch size is divisible by 4.
     '''
 
-    assert(BATCH_SIZE % 2 == 0)
+    assert(BATCH_SIZE % 4 == 0)
 
     #--------------------------------------------------------------------------#
     #                0.1 compute SENTIMENT                                     #
@@ -67,7 +67,7 @@ def gradient_stats(Losses, Weights, BATCH_SIZE):
     
     # use of `Linker` forces tf's gradient computations to return an actual 0 instead of `None` when there is no
     #       dependency
-    Linker = 0.0*tf.reduce_sum(tf.square(Weights))
+    Linker = 0.0*tf.reduce_sum(Weights)
     LinkedLosses = Losses + Linker
     AvgLoss = tf.reduce_mean(LinkedLosses)
     
@@ -76,17 +76,20 @@ def gradient_stats(Losses, Weights, BATCH_SIZE):
     #--------------------------------------------------------------------------#
     
     Gradients = tf.transpose(tf.convert_to_tensor(tf.gradients(LinkedLosses, Weights)))
-    MeanSqrGrad, TraceCovar, AvgSqrNorm, SqrAvgNorm = second_order_stats(Gradients, Gradients, BATCH_SIZE)
+    Gradients_0 = Gradients[:BATCH_SIZE//2, :] 
+    Gradients_1 = Gradients[BATCH_SIZE//2:, :] 
+    MeanSqrGrad, TraceCovar, _, __ = second_order_stats(Gradients, Gradients, BATCH_SIZE)
     
     #--------------------------------------------------------------------------#
     #                0.3 compute PASSION and AUDACITY                          #
     #--------------------------------------------------------------------------#
     
-    # below, we multiply by BATCH_SIZE to counter tf.gradients' averaging behavior
-    GradMeanSqrGrad = tf.transpose(tf.convert_to_tensor(tf.gradients(MeanSqrGrad, Weights))) * BATCH_SIZE
-    GradTraceCovar =  tf.transpose(tf.convert_to_tensor(tf.gradients(TraceCovar, Weights))) * BATCH_SIZE
-    Passion, _, __, ___ = second_order_stats(Gradients, GradMeanSqrGrad, BATCH_SIZE)
-    Audacity, _, __, ___ = second_order_stats(Gradients, GradTraceCovar, BATCH_SIZE)
+    MeanSqrGrad_1, TraceCovar_1, _, __ = second_order_stats(Gradients_1, Gradients_1, BATCH_SIZE//2)
+    # below, we multiply by BATCH_SIZE//2 to counter tf.gradients' averaging behavior
+    GradMeanSqrGrad = tf.transpose(tf.convert_to_tensor(tf.gradients(MeanSqrGrad_1, Weights))) * BATCH_SIZE
+    GradTraceCovar =  tf.transpose(tf.convert_to_tensor(tf.gradients(TraceCovar_1, Weights))) * BATCH_SIZE
+    Passion = tf.reduce_sum(tf.multiply(tf.reduce_mean(Gradients_0, axis=0), tf.reduce_mean(GradMeanSqrGrad, axis=0)))
+    Audacity= tf.reduce_sum(tf.multiply(tf.reduce_mean(Gradients_0, axis=0), tf.reduce_mean(GradTraceCovar, axis=0)))
     
     #--------------------------------------------------------------------------#
     #                0.4 compute PERIL                                         #
@@ -94,8 +97,6 @@ def gradient_stats(Losses, Weights, BATCH_SIZE):
     
     # to estimate Peril, we split the batch into two subbatches and invoke multiplicativity of expectation for
     #       independents
-    Gradients_0 = Gradients[:BATCH_SIZE//2, :] 
-    Gradients_1 = Gradients[BATCH_SIZE//2:, :] 
     InterSubbatchGradientDots = tf.reduce_sum(tf.multiply(Gradients_0, Gradients_1), axis=1)
     # HessesTimesGrads is the derivative with respect to subbatch_0 of (gradients_0 * gradients_1):
     HessesTimesGrads = tf.transpose(tf.convert_to_tensor(tf.gradients(InterSubbatchGradientDots, Weights)))[:BATCH_SIZE//2, :]
@@ -103,7 +104,6 @@ def gradient_stats(Losses, Weights, BATCH_SIZE):
     Peril = UncenteredPeril - Passion/2 
 
     return AvgLoss, MeanSqrGrad, TraceCovar, Passion, Audacity, Peril
-
 
 
 
