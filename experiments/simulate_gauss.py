@@ -12,12 +12,12 @@
             for 'good' A, the corresponding optimal B is hard to estimate.  Herein lies danger!
 
             To run, type:
-                python eta_curve_gauss.py 1000 10 0.000 0.001 10 32 experdata_gauss.txt 
+                python simulate.py 1000 10 0.00 0.05 12 32 experdata_gauss.txt 
             The                  1000   gives   a number of trials to perform per experimental condition;
             the                    10   gives   a training set size and number of gradient updates;
-            the                 0.000   gives   a starting learning rate to sweep from;
-            the                 0.001   gives   a ending learning rate to sweep to;
-            the                    10   gives   (one less than) the number of learning rates to sweep through;
+            the                  0.00   gives   a starting learning rate to sweep from;
+            the                  0.05   gives   a ending learning rate to sweep to;
+            the                    12   gives   (one less than) the number of learning rates to sweep through;
             the                    32   gives   a desired floating point precision (32 or 64);
             the   experdata_gauss.txt   gives   a filename of a log to which to append.
 '''
