@@ -3,13 +3,13 @@
     create: 2017-10-07
     descrp: Compare SGD and GD out-of-sample performances (for a shallow dense network on small MNIST training sets)
             over a log-spaced range of learning rates, then APPEND summary statistics to `results.txt`.  To run, type:
-                python eta_curve.py 1000 128 0.00001 0.01 30 64 results.txt 
+                python eta_curve_gauss.py 1000 10 0.000 0.001 10 32 results_gauss.txt 
             The    1000 represents the number of trials to perform per experimental condition;
-            the     128 represents the training set size;
-            the 0.00001 represents the starting learning rate to sweep from;
-            the    0.01 represents the ending learning rate to sweep to;
-            the      30 represents (one less than) the number of learning rates to sweep through; and
-            the      64 represents the desired floating point precision (32 or 64).
+            the      10 represents the training set size;
+            the   0.000 represents the starting learning rate to sweep from;
+            the   0.001 represents the ending learning rate to sweep to;
+            the      10 represents (one less than) the number of learning rates to sweep through; and
+            the      32 represents the desired floating point precision (32 or 64).
 
             
 '''
@@ -33,26 +33,14 @@ FILE_NM   = sys.argv[7]
 ###############################################################################
 #                            0. READ DATASET                                  #
 ###############################################################################
-
-from tensorflow.examples.tutorials.mnist import input_data
-
 class Dataset(object): 
-    ''' MNIST is a classic image-classification dataset containing 28x28 grayscale photographs of handwritten digits (0
-        through 9).  This class provides access to MNIST via in-sample and out-of-sample batches.  It allows us to
-        sample from a training set potentially smaller than the the overall MNIST training set, and to sample with or
-        without replacement.  Note that we load labels as one-hot vectors, making it easier to define losses.  Thus,
-        `get_batch` and `get_all` each return two arrays of shape (???, 28*28) and (???, 10), respectively.
     '''
-    def __init__(self):
-        ''' Read MNIST, with labels one-hot. '''
-        self.mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
-        self.resample_ins(len(self.mnist.train.images))
+    '''
+    def __init__(self, max_size=1000):
+        self.resample_ins(max_size)
 
     def resample_ins(self, ins_size):
-        ''' MNIST is a classic image-classification dataset.  Its images are 28x28 grayscale photographs of handwritten
-            digits (0 through 9).  Note that we load labels as one-hot vectors, making it easier to define the loss.
-        '''
-        self.ins_inputs, self.ins_outputs = self.mnist.train.next_batch(ins_size) 
+        self.ins_inputs = np.random.randn(ins_size, 1)
         self.ins_size = ins_size
         self.index = 0
 
@@ -62,28 +50,28 @@ class Dataset(object):
             same (and of size equal to the number of training points) each time. 
         '''
         if split == 'out': 
-            return self.mnist.test.next_batch(batch_size) 
+            out_inputs = np.random.randn(max_size, 1)
+            return out_inputs 
         if opt == 'gd': 
-            return self.ins_inputs, self.ins_outputs
+            return self.ins_inputs
         if with_replacement:
             indices = np.random.choice(self.ins_size, size)
-            return self.ins_inputs[indices], self.ins_outputs[indices]
+            return self.ins_inputs[indices]
         if self.index + batch_size > self.ins_size: 
             assert(self.index == self.ins_size)
             indices = np.random.shuffle(np.arange(self.ins_size))
             self.ins_inputs = self.ins_inputs[indices] 
-            self.ins_outputs = self.ins_outputs[indices] 
             self.index = 0
-        rtrn = self.ins_inputs[self.index:self.index+batch_size], self.ins_outputs[self.index:self.index+batch_size]
+        rtrn = self.ins_inputs[self.index:self.index+batch_size]
         self.index += batch_size
         return rtrn
 
-    def get_all(self, split='ins'):
+    def get_all(self, split='ins', max_size=1000):
         ''' Returns whole in-sample or out-of-sample points.  Good for evaluating train and test scores. ''' 
         if split == 'out':
-            return self.mnist.test.images, self.mnist.test.labels
-        return self.ins_inputs, self.ins_outputs
-
+            out_inputs = np.random.randn(max_size, 1)
+            return out_inputs
+        return self.ins_inputs
 
 
 ###############################################################################
@@ -104,63 +92,51 @@ class Classifier(object):
 
     def create_model(self, precision=tf.float32):
         ''' Construct a densely connected 28*28 --> 64 --> 10 neural network (with slrelu activations). '''
-        self.TrueInputs = tf.placeholder(precision, shape=[None, 28*28])
-        self.TrueOutputs= tf.placeholder(precision, shape=[None, 10])
+        self.Data = tf.placeholder(precision, shape=[None, 1])
 
-        WeightsA= tf.get_variable('Wa', shape=[  28*28,  64], dtype=precision)
-        BiasesA = tf.get_variable('Ba', shape=[          64], dtype=precision)
-        WeightsB= tf.get_variable('Wd', shape=[     64,  10], dtype=precision)
-        BiasesB = tf.get_variable('Bd', shape=[          10], dtype=precision)
+        self.Weights = tf.get_variable('flattened', shape=[1+1], dtype=precision)
 
-        self.InitWeightsA= tf.placeholder(precision, shape=[  28*28,  64])
-        self.InitBiasesA = tf.placeholder(precision, shape=[          64])
-        self.InitWeightsB= tf.placeholder(precision, shape=[     64,  10])
-        self.InitBiasesB = tf.placeholder(precision, shape=[          10])
-        self.Initializer = tf.tuple([
-            tf.assign(WeightsA, self.InitWeightsA),
-            tf.assign(BiasesA, self.InitBiasesA),
-            tf.assign(WeightsB, self.InitWeightsB),
-            tf.assign(BiasesB, self.InitBiasesB)
-        ])
+        self.WeightsA = self.Weights[0]
+        self.WeightsB = self.Weights[1]
 
-        HiddenLayerA = slrelu(tf.matmul(self.TrueInputs, WeightsA) + BiasesA)
-        HiddenLayerB = tf.matmul(HiddenLayerA, WeightsB) + BiasesB
-        self.PredictedLogits = HiddenLayerB
+        self.InitWeightsA = tf.placeholder(precision, shape=[1])
+        self.InitWeightsB = tf.placeholder(precision, shape=[1])
+        self.Inits = tf.concat([tf.reshape(init, [-1]) for init in [self.InitWeightsA, self.InitWeightsB]], axis=0)
+        self.Initializer = tf.assign(self.Weights, self.Inits)
+
 
     def create_trainer(self, precision=tf.float32):
         ''' Define the loss and corresponding gradient-based update.  The difference between gd and sgd is not codified
             here; instead, the difference lies in the size and correlations between batches we use to train the
-            classifier, i.e. in the values assigned to `TrueInputs` and `TrueOutputs` at each gradient update step.
+            classifier, i.e. in the values assigned to `Data` and `TrueOutputs` at each gradient update step.
         '''
-        CrossEntropies = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
-            labels=self.TrueOutputs,
-            logits=self.PredictedLogits
-        ))
-        self.Loss = tf.reduce_mean(CrossEntropies)
-        
+        self.Losses = self.WeightsA - tf.square(self.WeightsA) + tf.square(self.WeightsB - tf.multiply(self.WeightsA, self.Data))
+        self.Loss = tf.reduce_mean(self.Losses)
+
         self.LearningRate = tf.placeholder(dtype=precision)
-        self.Update = tf.train.GradientDescentOptimizer(self.LearningRate).minimize(self.Loss)
+
+        self.GradientWeights = tf.convert_to_tensor(tf.gradients(self.Loss, self.Weights))[0]
+
+        self.Update = tf.tuple([
+            tf.assign(self.Weights, self.Weights - self.LearningRate * self.GradientWeights), 
+        ])
         
-        PredictionIsCorrect = tf.equal(tf.argmax(self.PredictedLogits, 1), tf.argmax(self.TrueOutputs, 1))
-        self.Accuracy = tf.reduce_mean(tf.cast(PredictionIsCorrect, precision))
+        self.Accuracy = 0.0*tf.reduce_mean(self.Weights)
+
 
     def sample_init_weights(self): 
         ''' Sample weights (as numpy arrays) distributed according to Glorot-Bengio recommended length scales.  These
             weights are intended to be initializers. 
         '''
-        wa = np.random.randn(28*28, 64) * np.sqrt(2.0 / (28*28 + 64))
-        ba = np.random.randn(64) * np.sqrt(2.0 / 64)
-        wb = np.random.randn(64, 10) * np.sqrt(2.0 / (64 + 10))
-        bb = np.random.randn(10) * np.sqrt(2.0 / 10)
-        return (wa, ba, wb, bb)
+        wa = 1.0 + 0.0 * np.random.randn(1)
+        ba = 1.0 + 0.0 * np.random.randn(1)
+        return (wa, ba)
 
-    def initialize_weights(self, wa, ba, wb, bb): 
+    def initialize_weights(self, wa, ba):
         ''' Initialize weights as a RUNTIME OPERATION, not by creating new graph nodes. '''
         self.session.run(self.Initializer, feed_dict={
             self.InitWeightsA:wa,
-            self.InitBiasesA:ba,
-            self.InitWeightsB:wb,
-            self.InitBiasesB:bb
+            self.InitWeightsB:ba,
         })
 
     def run(self, dataset, ins_time, batch_size, learning_rate, opt='sgd'): 
@@ -168,24 +144,23 @@ class Classifier(object):
             loss, in-sample accuracy, and out-of-sample accuracy --- in that order.
         '''
         for t in range(ins_time):
-            batch_inputs, batch_outputs = dataset.get_batch(batch_size=batch_size, split='ins', opt=opt) 
-            self.session.run(self.Update, feed_dict={
-                self.TrueInputs:batch_inputs,
-                self.TrueOutputs:batch_outputs,
+            batch_inputs = dataset.get_batch(batch_size=batch_size, split='ins', opt=opt) 
+            self.session.run([self.Update], feed_dict={
+                self.Data:batch_inputs,
                 self.LearningRate:learning_rate
             }) 
         
-        ins_inputs, ins_outputs = dataset.get_all('ins') 
-        out_inputs, out_outputs = dataset.get_all('out') 
+        ins_inputs = dataset.get_all('ins') 
+        out_inputs = dataset.get_all('out') 
         ins_acc, ins_los = self.session.run([self.Accuracy, self.Loss], feed_dict={
-            self.TrueInputs:ins_inputs,
-            self.TrueOutputs:ins_outputs
+            self.Data:ins_inputs,
         })
         out_acc, out_los = self.session.run([self.Accuracy, self.Loss], feed_dict={
-            self.TrueInputs:out_inputs,
-            self.TrueOutputs:out_outputs
+            self.Data:out_inputs,
         })
         return ins_los, out_los, ins_acc, out_acc
+
+
 
 
 
