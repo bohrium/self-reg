@@ -3,11 +3,11 @@
     create: 2010-02-14
     descrp: Compare and plot losses for GD vs SGD and for out-of-sample vs in-sample --- as dependent on learning rate.
             To run, type:
-                python vis.py results_gauss.txt ests_gauss.txt OUT_DIFF plots/out_diff.png 0.025
+                python vis.py results_gauss.txt ests_gauss.txt OUT_DIFF plots/out-diff.png 0.025
             The   results_gauss.txt   gives   a filename storing experimental results;
             the      ests_gauss.txt   gives   a filename storing estimates of gradient statistics;
-            the            OUT_DIFF   gives   a plotting mode in {OUT_GD, OUT_SGD, OUT_DIFF, GEN_GD, GEN_SGD};
-            the  plots/out_diff.png   gives   a filename to write to (defaults to lowercase version of plotting mode);
+            the            OUT-DIFF   gives   a plotting mode in {OUT-GD, OUT-SGD, OUT-DIFF, GEN-GD, GEN-SGD};
+            the  plots/out-diff.png   gives   a filename to write to (defaults to lowercase version of plotting mode);
             the               0.025   gives   a maximum learning rate beyond which not to plot (defaults to infinity).
 '''
 
@@ -17,19 +17,24 @@ import re
 import sys 
 
 modes = {
-    'OUT_GD':  {'ylims':( 0.6 , 2.1 ), 'title':'GD Test Loss'}, 
-    'OUT_SGD': {'ylims':( 0.6 , 2.1 ), 'title':'SGD Test Loss'},
-    'OUT_DIFF':{'ylims':(-0.01, 0.12), 'title':'Test-Time Benefit of Stochasticity'},
-    'GEN_GD':  {'ylims':(-0.05, 0.35), 'title':'GD Generalization Gap'},
-    'GEN_SGD': {'ylims':(-0.05, 0.35), 'title':'SGD Generalization Gap'},
+    'OUT-GD':  {'ylims':( 5.5 , 8.0 ), 'title':'GD Test Loss'}, 
+    'OUT-SGD': {'ylims':( 5.5 , 8.0 ), 'title':'SGD Test Loss'},
+    'OUT-DIFF':{'ylims':(-0.05, 0.30), 'title':'Test-Time Benefit of Stochasticity'},
+    'GEN-GD':  {'ylims':(-0.20, 4.80), 'title':'GD Generalization Gap'},
+    'GEN-SGD': {'ylims':(-0.20, 4.80), 'title':'SGD Generalization Gap'},
+#    'OUT-GD':  {'ylims':( 0.6 , 2.1 ), 'title':'GD Test Loss'}, 
+#    'OUT-SGD': {'ylims':( 0.6 , 2.1 ), 'title':'SGD Test Loss'},
+#    'OUT-DIFF':{'ylims':(-0.01, 0.12), 'title':'Test-Time Benefit of Stochasticity'},
+#    'GEN-GD':  {'ylims':(-0.05, 0.35), 'title':'GD Generalization Gap'},
+#    'GEN-SGD': {'ylims':(-0.05, 0.35), 'title':'SGD Generalization Gap'},
 }
 
 assert(len(sys.argv) in [4, 6])
 EXPERDATA_FILENM = sys.argv[1] 
 GRADSTATS_FILENM = sys.argv[2]
 MODE = sys.argv[3]
-STATISTIC = MODE.split('_')[0].lower()
-OPTIMIZER = MODE.split('_')[1].lower()
+STATISTIC = MODE.split('-')[0].lower()
+OPTIMIZER = MODE.split('-')[1].lower()
 DEFAULT_FILENM= '%s.png'%MODE.lower()
 PLOT_FILENM = sys.argv[4] if len(sys.argv)==6 else DEFAULT_FILENM 
 MAX_LR = float(sys.argv[5]) if len(sys.argv)==6 else float('inf') 
@@ -111,25 +116,25 @@ X = np.array(sorted(X))
 
 N = T = 10
 E_qua = E_lin = None
-if MODE == 'OUT_GD':
+if MODE == 'OUT-GD':
     E_qua =         SEN  - X*T*INT  + X*X*( (T*(T-1)/2.0)*(0.75*PAS + 0.5*AUD  /N + 0.5*PER /N) + (T)*(0.25*PAS  + 0.5*PER /N))
     S_qua =        (SEN_ - X*T*INT_ + X*X*( (T*(T-1)/2.0)*(0.75*PAS_+ 0.5*AUD_ /N + 0.5*PER_/N) + (T)*(0.25*PAS_ + 0.5*PER_/N)))
     E_lin =         SEN  - X*T*INT 
     S_lin =         SEN_ - X*T*INT_
-elif MODE == 'OUT_SGD':
+elif MODE == 'OUT-SGD':
     E_qua =         SEN  - X*T*INT  + X*X*( (T*(T-1)/2.0)*(0.75*PAS                           ) + (T)*(0.25*PAS  + 0.5*PER ))
     S_qua =        (SEN_ - X*T*INT_ + X*X*( (T*(T-1)/2.0)*(0.75*PAS_                          ) + (T)*(0.25*PAS_ + 0.5*PER_)))
     E_lin =         SEN  - X*T*INT 
     S_lin =         SEN_ - X*T*INT_
-elif MODE == 'OUT_DIFF':
+elif MODE == 'OUT-DIFF':
     E_qua =                           X*X*( (T*(T-1)/2.0)*(           0.5*AUD  /N + 0.5*PER /N) + (T)*(-0.5*PER  + 0.5*PER /N))
     S_qua =        (                  X*X*( (T*(T-1)/2.0)*(           0.5*AUD_ /N + 0.5*PER_/N) + (T)*( 0.5*PER_ - 0.5*PER_/N)))
     E_lin =                X*0.0
     S_lin =                X*0.0
-elif MODE == 'GEN_GD':
+elif MODE == 'GEN-GD':
     E_lin =                X*T*UNC /N       
     S_lin =        (       X*T*UNC_/N)
-elif MODE == 'GEN_SGD':
+elif MODE == 'GEN-SGD':
     E_qua =                X*T*UNC /N        - X*X*( (T*(T-1)/2.0)*(0.5*PAS  + PER  + PAS  + AUD       ) + (T)*(0.0))/N
     S_qua =                X*T*UNC_/N        - X*X*( (T*(T-1)/2.0)*(0.5*PAS_ + PER_ + PAS_ + AUD_      ) + (T)*(0.0))/N
     E_lin =                X*T*UNC /N       
@@ -139,7 +144,7 @@ elif MODE == 'GEN_SGD':
     #               1.1 process experimental data                              #
     #--------------------------------------------------------------------------#
 
-if MODE in ['GEN_GD', 'GEN_SGD']:
+if STATISTIC == 'gen':
     Y = np.array(Y_out) - np.array(Y_ins)
     S = np.array(S_out) + np.array(S_ins)
 else:
@@ -161,8 +166,8 @@ green='#44cc44'
 blue='#4444cc'
 
 def plot_fill(x, y, s, color, label, z=1.96):
-    plt.plot(x, y, color=color)
-    plt.fill(np.concatenate([x, x[::-1]]), np.concatenate([y-z*s, (y+z*s)[::-1]]), facecolor=color, label=label)
+    plt.plot(x, y, color=color, alpha=0.5)
+    plt.fill(np.concatenate([x, x[::-1]]), np.concatenate([y-z*s, (y+z*s)[::-1]]), facecolor=color, alpha=0.5, label=label)
 
 def plot_bars(x, y, s, color, label, z=1.96, bar_width=1.0/50): 
     e = bar_width * (max(x)-min(x))

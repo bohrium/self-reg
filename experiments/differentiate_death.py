@@ -1,13 +1,13 @@
 ''' author: samtenka
     change: 2019-02-20
     create: 2017-10-07
-    descrp: Estimate and save gradient statistics (on a toy learning task described in `eta_curve_gauss.py`).
+    descrp: Estimate and save gradient statistics (on a toy learning task described in `eta_curve_death.py`).
             To run, type:
-                python differentiate_gauss.py 10000 24 32 gradstats_gauss.txt
+                python differentiate_death.py 10000 24 32 gradstats_death.txt
             The                 10000   gives   a number of trials to perform;
             the                    24   gives   a training set size;
             the                    32   gives   a desired floating point precision (32 or 64);
-            the   gradstats_gauss.txt   gives   a filename to overwrite with results.
+            the   gradstats_death.txt   gives   a filename to overwrite with results.
 '''
 
 import tensorflow as tf
@@ -188,7 +188,7 @@ class Learner(object):
             here; instead, the difference lies in the size and correlations between batches we use to train the
             classifier, i.e. in the values assigned to `Data` and `TrueOutputs` at each gradient update step.
         '''
-        self.Losses = self.WeightsA - tf.square(self.WeightsA) + tf.square(self.WeightsB - tf.multiply(self.WeightsA, self.Data))
+        self.Losses = self.WeightsA - 3*tf.square(tf.square(self.WeightsA)) + tf.square(tf.square(self.WeightsB - tf.multiply(self.WeightsA, self.Data)))
         self.Loss = tf.reduce_mean(self.Losses)
         
         self.Sentiment, self.Intensity, self.Uncertainty, self.Passion, self.Audacity, self.Peril = gradient_stats(self.Losses, self.Weights, batch_size)
