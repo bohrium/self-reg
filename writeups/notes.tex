@@ -1,0 +1,41 @@
+\documentclass[12pt]{article}
+\usepackage{sammath}
+
+\newcommand{\unc}{\texttt{uncertainty}~$\ang{(a)(a)}-\ang{(a)}\ang{(a)}$}
+\newcommand{\tem}{\texttt{temerity}~$2\ang{(a)}(\ang{(ab)(b)}-\ang{(ab)}\ang{(b)})$}
+\newcommand{\per}{\texttt{peril}~$\ang{(ab)}(\ang{(a)(b)}-\ang{(a)}\ang{(b)})$}
+
+\begin{document}
+    \customtitle{Perturbative Analysis of SGD}
+
+    \customsection{2019-03-05}
+        \begin{itemize}
+            \item {\bf Plot} loss curves (predictions vs empirical) for MNIST binary classification (``0'' vs ``1'').
+                Use super-shallow (logistic non-affine regression) architecture with larger $T$ than before ($T=100$).
+                We initialize at $0$-vector.
+            \item {\bf Tune} explored range of learning rates to be very small ($10^{-6} - 10^{-5}$) to focus on
+                regime wherein empirical generalization gaps scale linearly with learning rate.
+            \item {\bf Observe} discrepancy in plots: theory overestimates generalization gap at 1st order and
+                underestimates benefit of stochasticity at 2nd order.  Could this be due to rounding error for very
+                small learning rates?
+            \item {\bf Test} potential that discrepancy was due to rounding error by using 64-bit (instead of 32-bit)
+                floating point precision.
+            \item {\bf Find} no qualitative difference between behaviors with the two precisions.
+        \end{itemize}
+
+    %\customsection{2019-03-17}
+    %    \begin{itemize}
+    %        \item {\bf Plot} loss curves (predictions vs empirical) for MNIST binary classification (``0'' vs ``1'').
+    %            Use super-shallow (logistic non-affine regression) architecture with larger $T$ than before ($T=100$).
+    %            We initialize at $0$-vector.
+    %        \item {\bf Tune} explored range of learning rates to be very small ($10^{-6} - 10^{-5}$) to focus on
+    %            regime wherein empirical generalization gaps scale linearly with learning rate.
+    %        \item {\bf Observe} discrepancy in plots: theory overestimates generalization gap at 1st order and
+    %            underestimates benefit of stochasticity at 2nd order.  Could this be due to rounding error for very
+    %            small learning rates?
+    %        \item {\bf Test} potential that discrepancy was due to rounding error by using 64-bit (instead of 32-bit)
+    %            floating point precision.
+    %        \item {\bf Find} no qualitative difference between behaviors with the two precisions.
+    %    \end{itemize}
+
+\end{document}

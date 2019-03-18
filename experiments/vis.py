@@ -3,12 +3,12 @@
     create: 2010-02-14
     descrp: Compare and plot losses for GD vs SGD and for out-of-sample vs in-sample --- as dependent on learning rate.
             To run, type:
-                python vis.py results_gauss.txt ests_gauss.txt OUT_DIFF plots/out-diff.png 0.025
-            The   results_gauss.txt   gives   a filename storing experimental results;
-            the      ests_gauss.txt   gives   a filename storing estimates of gradient statistics;
-            the            OUT-DIFF   gives   a plotting mode in {OUT-GD, OUT-SGD, OUT-DIFF, GEN-GD, GEN-SGD};
-            the  plots/out-diff.png   gives   a filename to write to (defaults to lowercase version of plotting mode);
-            the               0.025   gives   a maximum learning rate beyond which not to plot (defaults to infinity).
+                python vis.py experdata_gauss.txt gradstats_gauss.txt OUT-DIFF plots/out-diff.png 0.025
+            The   experdata_gauss.txt   gives   a filename storing experimental results;
+            the   gradstats_gauss.txt   gives   a filename storing estimates of gradient statistics;
+            the              OUT-DIFF   gives   a plotting mode in {OUT-GD, OUT-SGD, OUT-DIFF, GEN-GD, GEN-SGD};
+            the    plots/out-diff.png   gives   a filename to write to (defaults to lowercase version of plotting mode);
+            the                 0.025   gives   a maximum learning rate beyond which not to plot (defaults to infinity).
 '''
 
 from matplotlib import pyplot as plt
@@ -17,11 +17,21 @@ import re
 import sys 
 
 modes = {
-    'OUT-GD':  {'ylims':( 5.5 , 8.0 ), 'title':'GD Test Loss'}, 
-    'OUT-SGD': {'ylims':( 5.5 , 8.0 ), 'title':'SGD Test Loss'},
-    'OUT-DIFF':{'ylims':(-0.05, 0.30), 'title':'Test-Time Benefit of Stochasticity'},
-    'GEN-GD':  {'ylims':(-0.20, 4.80), 'title':'GD Generalization Gap'},
-    'GEN-SGD': {'ylims':(-0.20, 4.80), 'title':'SGD Generalization Gap'},
+#    'OUT-GD':  {'ylims':( 0.4  , 0.7 ), 'title':'GD Test Loss'}, 
+#    'OUT-SGD': {'ylims':( 0.4  , 0.7 ), 'title':'SGD Test Loss'},
+#    'OUT-DIFF':{'ylims':(-0.02 , 0.04), 'title':'Test-Time Benefit of Stochasticity'},
+#    'GEN-GD':  {'ylims':(-0.05 , 0.05), 'title':'GD Generalization Gap'},
+#    'GEN-SGD': {'ylims':(-0.05 , 0.05), 'title':'SGD Generalization Gap'},
+    'OUT-GD':  {'ylims':( 0.45 , 0.7 ), 'title':'GD Test Loss'}, 
+    'OUT-SGD': {'ylims':( 0.45 , 0.7 ), 'title':'SGD Test Loss'},
+    'OUT-DIFF':{'ylims':(-0.02 , 0.04), 'title':'Test-Time Benefit of Stochasticity'},
+    'GEN-GD':  {'ylims':(-0.05 , 0.6 ), 'title':'GD Generalization Gap'},
+    'GEN-SGD': {'ylims':(-0.05 , 0.6 ), 'title':'SGD Generalization Gap'},
+#    'OUT-GD':  {'ylims':( 5.5 , 8.0 ), 'title':'GD Test Loss'}, 
+#    'OUT-SGD': {'ylims':( 5.5 , 8.0 ), 'title':'SGD Test Loss'},
+#    'OUT-DIFF':{'ylims':(-0.05, 0.30), 'title':'Test-Time Benefit of Stochasticity'},
+#    'GEN-GD':  {'ylims':(-0.20, 4.80), 'title':'GD Generalization Gap'},
+#    'GEN-SGD': {'ylims':(-0.20, 4.80), 'title':'SGD Generalization Gap'},
 #    'OUT-GD':  {'ylims':( 0.6 , 2.1 ), 'title':'GD Test Loss'}, 
 #    'OUT-SGD': {'ylims':( 0.6 , 2.1 ), 'title':'SGD Test Loss'},
 #    'OUT-DIFF':{'ylims':(-0.01, 0.12), 'title':'Test-Time Benefit of Stochasticity'},
@@ -54,8 +64,9 @@ with open(GRADSTATS_FILENM) as f:
     MTRIALS, _ = tuple(float(x) for x in lines[0].split() if x.isnumeric())
     split_line = lambda l: l.replace(',', ' ').split() 
     is_number = lambda s: s.replace('.','').replace('-','').isnumeric() 
-    SEN, INT, UNC, PAS, AUD, PER = tuple(float(x)              for x in split_line(lines[1]) if is_number(x))
-    SEN_,INT_,UNC_,PAS_,AUD_,PER_= tuple(float(x)/MTRIALS**0.5 for x in split_line(lines[2]) if is_number(x))
+    SEN, INT, UNC, PAS, AUD, PER = tuple(float(x)               for x in split_line(lines[1]) if is_number(x))
+    concentration = (1.0/MTRIALS**0.5) + (1.0/1000.0**0.5) 
+    SEN_,INT_,UNC_,PAS_,AUD_,PER_= tuple(float(x)*concentration for x in split_line(lines[2]) if is_number(x))
 
     #--------------------------------------------------------------------------#
     #               0.1 read experimental data                                 #
@@ -85,12 +96,16 @@ with open(EXPERDATA_FILENM) as f:
         if metric == 'OL':
             X.append(learning_rate)
             Y_out.append(mean)
-            S_out.append(stddev / np.sqrt(nb_trials))
+            concentration = (1.0/nb_trials**0.5)
+            #if opt!='diff':
+            #    concentration += (1.0/1000.0**0.5) 
+            S_out.append(stddev * concentration)
         elif metric == 'IL':
             Y_ins.append(mean)
-            S_ins.append(stddev / np.sqrt(nb_trials))
-
-
+            concentration = (1.0/nb_trials**0.5)
+            #if opt!='diff':
+            #    concentration += (1.0/5000.0**0.5) 
+            S_ins.append(stddev * concentration)
 
 ################################################################################
 #           1. COMPUTE CURVES                                                  #
@@ -114,18 +129,18 @@ X = np.array(sorted(X))
         G. trace of hessian times covariance            {(ab)}{(a)(b)} - {(ab)}{(a)}{(b)}       PERIL 
 '''
 
-N = T = 10
+N = T = 2  
 E_qua = E_lin = None
 if MODE == 'OUT-GD':
     E_qua =         SEN  - X*T*INT  + X*X*( (T*(T-1)/2.0)*(0.75*PAS + 0.5*AUD  /N + 0.5*PER /N) + (T)*(0.25*PAS  + 0.5*PER /N))
-    S_qua =        (SEN_ - X*T*INT_ + X*X*( (T*(T-1)/2.0)*(0.75*PAS_+ 0.5*AUD_ /N + 0.5*PER_/N) + (T)*(0.25*PAS_ + 0.5*PER_/N)))
+    S_qua =        (SEN_ + X*T*INT_ + X*X*( (T*(T-1)/2.0)*(0.75*PAS_+ 0.5*AUD_ /N + 0.5*PER_/N) + (T)*(0.25*PAS_ + 0.5*PER_/N)))
     E_lin =         SEN  - X*T*INT 
-    S_lin =         SEN_ - X*T*INT_
+    S_lin =         SEN_ + X*T*INT_
 elif MODE == 'OUT-SGD':
     E_qua =         SEN  - X*T*INT  + X*X*( (T*(T-1)/2.0)*(0.75*PAS                           ) + (T)*(0.25*PAS  + 0.5*PER ))
-    S_qua =        (SEN_ - X*T*INT_ + X*X*( (T*(T-1)/2.0)*(0.75*PAS_                          ) + (T)*(0.25*PAS_ + 0.5*PER_)))
+    S_qua =        (SEN_ + X*T*INT_ + X*X*( (T*(T-1)/2.0)*(0.75*PAS_                          ) + (T)*(0.25*PAS_ + 0.5*PER_)))
     E_lin =         SEN  - X*T*INT 
-    S_lin =         SEN_ - X*T*INT_
+    S_lin =         SEN_ + X*T*INT_
 elif MODE == 'OUT-DIFF':
     E_qua =                           X*X*( (T*(T-1)/2.0)*(           0.5*AUD  /N + 0.5*PER /N) + (T)*(-0.5*PER  + 0.5*PER /N))
     S_qua =        (                  X*X*( (T*(T-1)/2.0)*(           0.5*AUD_ /N + 0.5*PER_/N) + (T)*( 0.5*PER_ - 0.5*PER_/N)))
@@ -133,12 +148,12 @@ elif MODE == 'OUT-DIFF':
     S_lin =                X*0.0
 elif MODE == 'GEN-GD':
     E_lin =                X*T*UNC /N       
-    S_lin =        (       X*T*UNC_/N)
+    S_lin =        (SEN_+  X*T*UNC_/N)  # sen_ due to incomplete cancellation 'tween finite insamples and outsamples
 elif MODE == 'GEN-SGD':
     E_qua =                X*T*UNC /N        - X*X*( (T*(T-1)/2.0)*(0.5*PAS  + PER  + PAS  + AUD       ) + (T)*(0.0))/N
-    S_qua =                X*T*UNC_/N        - X*X*( (T*(T-1)/2.0)*(0.5*PAS_ + PER_ + PAS_ + AUD_      ) + (T)*(0.0))/N
+    S_qua =         SEN_+  X*T*UNC_/N        + X*X*( (T*(T-1)/2.0)*(0.5*PAS_ + PER_ + PAS_ + AUD_      ) + (T)*(0.0))/N
     E_lin =                X*T*UNC /N       
-    S_lin =        (       X*T*UNC_/N)
+    S_lin =        (SEN_+  X*T*UNC_/N)  # sen_ due to incomplete cancellation 'tween finite insamples and outsamples
 
     #--------------------------------------------------------------------------#
     #               1.1 process experimental data                              #
@@ -161,9 +176,9 @@ else:
     #               2.0 define stylization of error bars                       #
     #--------------------------------------------------------------------------#
 
-red='#cc4444'
+red  ='#cc4444'
 green='#44cc44'
-blue='#4444cc'
+blue ='#4444cc'
 
 def plot_fill(x, y, s, color, label, z=1.96):
     plt.plot(x, y, color=color, alpha=0.5)
