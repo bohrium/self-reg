@@ -23,19 +23,31 @@
             \item {\bf Find} no qualitative difference between behaviors with the two precisions.
         \end{itemize}
 
-    %\customsection{2019-03-17}
-    %    \begin{itemize}
-    %        \item {\bf Plot} loss curves (predictions vs empirical) for MNIST binary classification (``0'' vs ``1'').
-    %            Use super-shallow (logistic non-affine regression) architecture with larger $T$ than before ($T=100$).
-    %            We initialize at $0$-vector.
-    %        \item {\bf Tune} explored range of learning rates to be very small ($10^{-6} - 10^{-5}$) to focus on
-    %            regime wherein empirical generalization gaps scale linearly with learning rate.
-    %        \item {\bf Observe} discrepancy in plots: theory overestimates generalization gap at 1st order and
-    %            underestimates benefit of stochasticity at 2nd order.  Could this be due to rounding error for very
-    %            small learning rates?
-    %        \item {\bf Test} potential that discrepancy was due to rounding error by using 64-bit (instead of 32-bit)
-    %            floating point precision.
-    %        \item {\bf Find} no qualitative difference between behaviors with the two precisions.
-    %    \end{itemize}
+    \customsection{2019-03-17}
+        \begin{itemize}
+            \item {\bf Modify} loss landscape (motivated by a desire to break symmetry) by initializing at a non-zero
+                constant.  Observe a discrepancy at $0$th order between predictions and experiment!!  This is
+                unexpected indeed!
+            \item {\bf Identify} potential reason for discrepancy: test losses were reported as having incorrectly low
+                variances, leading to the aforementioned $0$th order non-overlap.
+            \item {\bf Resolve} discrepancy via two changes: on one hand, estimate test loss variance by comparing
+                losses on different sub-batches of our finite test set; on the other hand, allow for a difference
+                between test-set means and true-distribution means by augmenting relevant error bars by a
+                $\sigma/\sqrt{\text{nb batches in test set}}$ term.
+            \item {\bf Observe} that with these changes, we observe agreement between predicted testscores and
+                experiment (for SGD, GD, and their difference).  We also note that for $T=100$ and $\eta\approx 0.001$
+                (for this $T$, this is the natural scale for $\eta$ given by the critical point of relevant
+                quadratics), the error bars are too big to tell a visual story about the benefit of stochasticity. 
+                Alas, Due to the fixity of the aforementioned $\sigma/\sqrt{\text{nb batches in test set}}$ term,
+                running more trials would not clarify that visual story.   
+            \item {\bf Fix} mistakes (identified along the way) in uncertainty-visualization, namely: signs for
+                combination of standard deviations (signs should all be positive); and a $0$th order term for the
+                uncertainties of generalization gaps that arises from the fact that the actual test-set and train-set
+                means might differ from the true mean. 
+            \item {\bf Prioritize} another term to compute in order that, namely the curvature $\text{tr}(H^2)$.  This
+                affects the $2$nd order behavior of generalization gaps.  Will leave for next time...
+        \end{itemize}
+
+        Also for next time: run on csail machines; start writing notebook to share with dan
 
 \end{document}
