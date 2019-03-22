@@ -101,12 +101,19 @@ def gradient_stats(Losses, Weights, BATCH_SIZE):
     Peril = UncenteredPeril - Passion/2 
 
     #--------------------------------------------------------------------------#
-    #                0.5 compute CURVATURE                                     #
+    #                0.5 compute SERENDIPITY                                   #
     #--------------------------------------------------------------------------#
-    #TODO
+    IGD = tf.reduce_sum(tf.multiply(Gradients, Gradients), axis=1)
+    HG = tf.transpose(tf.convert_to_tensor(tf.gradients(IGD, Weights))) / 2.0
+    GHG = tf.reduce_mean(tf.reduce_sum(tf.multiply(Gradients, HG), axis=1), axis=0)
 
-    return AvgLoss, MeanSqrGrad, TraceCovar, Passion, Audacity, Peril
+    IGD_ = tf.reduce_sum(tf.multiply(Gradients_0, Gradients_1), axis=1)
+    HG_  = tf.transpose(tf.convert_to_tensor(tf.gradients(IGD_, Weights)))[BATCH_SIZE//2:, :]
+    GHG_ = tf.reduce_mean(tf.reduce_sum(tf.multiply(Gradients_0, HG_), axis=1), axis=0)
 
+    Serendipity = GHG - GHG_ 
+    
+    return AvgLoss, MeanSqrGrad, TraceCovar, Passion, Audacity, Peril, Serendipity
 
 
 
@@ -226,7 +233,7 @@ class Learner(object):
             classifier, i.e. in the values assigned to `Data` and `TrueOutputs` at each gradient update step.
         '''
         self.Loss = tf.reduce_mean(self.Losses)
-        self.Sentiment, self.Intensity, self.Uncertainty, self.Passion, self.Audacity, self.Peril = gradient_stats(self.Losses, self.Weights, batch_size)
+        self.Sentiment, self.Intensity, self.Uncertainty, self.Passion, self.Audacity, self.Peril, self.Serendipity  = gradient_stats(self.Losses, self.Weights, batch_size)
 
     def sample_init_weights(self): 
         ''' Sample weights (as numpy arrays) distributed according to Glorot-Bengio recommended length scales.  These
@@ -244,11 +251,14 @@ class Learner(object):
     def run(self, dataset): 
         ''' Compute gradient statistics on the given training set. '''
         ins_inputs, ins_outputs = dataset.get_all('ins') 
-        sentiment, intensity, uncertainty, passion, audacity, peril = self.session.run([self.Sentiment, self.Intensity, self.Uncertainty, self.Passion, self.Audacity, self.Peril], feed_dict={
-            self.Images:ins_inputs,
-            self.Labels:ins_outputs,
-        })
-        return sentiment, intensity, uncertainty, passion, audacity, peril
+        sentiment, intensity, uncertainty, passion, audacity, peril, serendipity = self.session.run(
+            [self.Sentiment, self.Intensity, self.Uncertainty, self.Passion, self.Audacity, self.Peril, self.Serendipity],
+            feed_dict = {
+                self.Images:ins_inputs,
+                self.Labels:ins_outputs
+            }
+        )
+        return sentiment, intensity, uncertainty, passion, audacity, peril, serendipity
 
 
 
@@ -263,21 +273,23 @@ def run_experiment(nb_trials, ins_size):
     dataset = Dataset()
     learner = Learner(ins_size)
 
-    sentiment, intensity, uncertainty, passion, audacity, peril = [], [], [], [], [], []
-    statlists = [sentiment, intensity, uncertainty, passion, audacity, peril]
+    sentiment, intensity, uncertainty, passion, audacity, peril, serendipity = [], [], [], [], [], [], []
+    statlists = [sentiment, intensity, uncertainty, passion, audacity, peril, serendipity]
     for h in tqdm(range(nb_trials)):
         dataset.resample(ins_size)
         init_weights = learner.sample_init_weights() 
         learner.initialize_weights(*init_weights)
         for s, slist in zip(learner.run(dataset), statlists): 
             slist.append(s)
-    print('MEAN: sent %.8f, intense %.8f, uncert %.8f, pass %.8f, aud %.8f, peril %.8f' % tuple(np.mean(sl) for sl in statlists))
-    print('SDEV: sent %.8f, intense %.8f, uncert %.8f, pass %.8f, aud %.8f, peril %.8f' % tuple(np.std(sl) for sl in statlists))
+    print('MEAN: sent %.8f, intense %.8f, uncert %.8f, pass %.8f, aud %.8f, peril %.8f, serendipity %.8f' % tuple(np.mean(sl) for sl in statlists))
+    print('SDEV: sent %.8f, intense %.8f, uncert %.8f, pass %.8f, aud %.8f, peril %.8f, serendipity %.8f' % tuple(np.std(sl) for sl in statlists))
 
     with open(FILE_NM, 'w') as f:
         f.write('%d TRIALS, %d SAMPLES\n' % (nb_trials, ins_size))
-        f.write('MEAN: sent %.8f, intense %.8f, uncert %.8f, pass %.8f, aud %.8f, peril %.8f\n' % tuple(np.mean(sl) for sl in statlists))
-        f.write('SDEV: sent %.8f, intense %.8f, uncert %.8f, pass %.8f, aud %.8f, peril %.8f\n' % tuple(np.std(sl) for sl in statlists))
+        f.write('MEAN: sent %.8f, intense %.8f, uncert %.8f, pass %.8f, aud %.8f, peril %.8f, serendipity %.8f\n' % tuple(np.mean(sl) for sl in statlists))
+        f.write('SDEV: sent %.8f, intense %.8f, uncert %.8f, pass %.8f, aud %.8f, peril %.8f, serendipity %.8f\n' % tuple(np.std(sl) for sl in statlists))
+
+
 
 if __name__=='__main__':
     run_experiment(nb_trials=NB_TRIALS, ins_size=INS_SIZE)

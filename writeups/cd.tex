@@ -1,0 +1,68 @@
+\documentclass{article}
+\usepackage{amsmath,amssymb,tikz-cd}
+\newcommand{\actson}[1]{\arrow[bend left=30,dash,#1]}
+\newcommand{\alsoactson}[1]{\arrow[bend right=30,dash,#1]}
+\newcommand{\reddisk}{{\color{violet}\bigstar}}
+\newcommand{\greendisk}{{\color{olive}\blacklozenge}}
+\newcommand{\bluedisk}{{\color{teal}\blacktriangle}}
+\newcommand{\wrap}[1]{\left(#1\right)}
+
+\begin{document}
+    $$
+        \texttt{uncertainty} = 
+        \left(\begin{tikzcd}
+            \reddisk \actson{r} & \reddisk
+        \end{tikzcd}\right)
+        - 
+        \left(\begin{tikzcd}
+            \reddisk \actson{r} & \greendisk
+        \end{tikzcd}\right)
+    $$
+
+    $$
+        \texttt{audacity} = 
+        \left(\begin{tikzcd}
+            \reddisk \actson{r} & \greendisk \actson{r} & \greendisk
+        \end{tikzcd}\right)
+        - 
+        \left(\begin{tikzcd}
+            \reddisk \actson{r} & \greendisk \actson{r} & \bluedisk
+        \end{tikzcd}\right)
+    $$
+
+    $$
+        \texttt{serendipity} = 
+        \left(\begin{tikzcd}
+            \reddisk \actson{r} & \greendisk \actson{r} & \reddisk
+        \end{tikzcd}\right)
+        - 
+        \left(\begin{tikzcd}
+            \reddisk \actson{r} & \greendisk \actson{r} & \bluedisk
+        \end{tikzcd}\right)
+    $$
+
+    $$
+        \texttt{???} = 
+        \left(\begin{tikzcd}
+            \reddisk \actson{r} & \reddisk \actson{r} & \reddisk
+        \end{tikzcd}\right)
+        - 
+        \left(\begin{tikzcd}
+            \reddisk \actson{r} & \greendisk \actson{r} & \bluedisk
+        \end{tikzcd}\right)
+    $$
+
+    $$
+        \texttt{???} = 
+        \left(\begin{tikzcd}
+            \reddisk \actson{r}\alsoactson{r} & \reddisk
+        \end{tikzcd}\right)
+        - 
+        \left(\begin{tikzcd}
+            \reddisk \actson{r}\alsoactson{r} & \greendisk
+        \end{tikzcd}\right)
+    $$
+
+
+
+\end{document}

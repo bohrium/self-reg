@@ -27,11 +27,11 @@ modes = {
     'OUT-DIFF':{'ylims':(-0.02 , 0.04), 'title':'Test-Time Benefit of Stochasticity'},
     'GEN-GD':  {'ylims':(-0.05 , 0.6 ), 'title':'GD Generalization Gap'},
     'GEN-SGD': {'ylims':(-0.05 , 0.6 ), 'title':'SGD Generalization Gap'},
-#    'OUT-GD':  {'ylims':( 5.5 , 8.0 ), 'title':'GD Test Loss'}, 
-#    'OUT-SGD': {'ylims':( 5.5 , 8.0 ), 'title':'SGD Test Loss'},
-#    'OUT-DIFF':{'ylims':(-0.05, 0.30), 'title':'Test-Time Benefit of Stochasticity'},
-#    'GEN-GD':  {'ylims':(-0.20, 4.80), 'title':'GD Generalization Gap'},
-#    'GEN-SGD': {'ylims':(-0.20, 4.80), 'title':'SGD Generalization Gap'},
+##    'OUT-GD':  {'ylims':( 5.5 , 8.0 ), 'title':'GD Test Loss'}, 
+##    'OUT-SGD': {'ylims':( 5.5 , 8.0 ), 'title':'SGD Test Loss'},
+##    'OUT-DIFF':{'ylims':(-0.05, 0.30), 'title':'Test-Time Benefit of Stochasticity'},
+##    'GEN-GD':  {'ylims':(-0.20, 4.80), 'title':'GD Generalization Gap'},
+##    'GEN-SGD': {'ylims':(-0.20, 4.80), 'title':'SGD Generalization Gap'},
 #    'OUT-GD':  {'ylims':( 0.6 , 2.1 ), 'title':'GD Test Loss'}, 
 #    'OUT-SGD': {'ylims':( 0.6 , 2.1 ), 'title':'SGD Test Loss'},
 #    'OUT-DIFF':{'ylims':(-0.01, 0.12), 'title':'Test-Time Benefit of Stochasticity'},
@@ -64,9 +64,9 @@ with open(GRADSTATS_FILENM) as f:
     MTRIALS, _ = tuple(float(x) for x in lines[0].split() if x.isnumeric())
     split_line = lambda l: l.replace(',', ' ').split() 
     is_number = lambda s: s.replace('.','').replace('-','').isnumeric() 
-    SEN, INT, UNC, PAS, AUD, PER = tuple(float(x)               for x in split_line(lines[1]) if is_number(x))
-    concentration = (1.0/MTRIALS**0.5) + (1.0/1000.0**0.5) 
-    SEN_,INT_,UNC_,PAS_,AUD_,PER_= tuple(float(x)*concentration for x in split_line(lines[2]) if is_number(x))
+    SEN, INT, UNC, PAS, AUD, PER, SER = tuple(float(x)               for x in split_line(lines[1]) if is_number(x))
+    concentration = (1.0/MTRIALS**0.5) + (1.0/10000.0**0.5) 
+    SEN_,INT_,UNC_,PAS_,AUD_,PER_,SER_ = tuple(float(x)*concentration for x in split_line(lines[2]) if is_number(x))
 
     #--------------------------------------------------------------------------#
     #               0.1 read experimental data                                 #
@@ -129,7 +129,7 @@ X = np.array(sorted(X))
         G. trace of hessian times covariance            {(ab)}{(a)(b)} - {(ab)}{(a)}{(b)}       PERIL 
 '''
 
-N = T = 2  
+N = T = 2
 E_qua = E_lin = None
 if MODE == 'OUT-GD':
     E_qua =         SEN  - X*T*INT  + X*X*( (T*(T-1)/2.0)*(0.75*PAS + 0.5*AUD  /N + 0.5*PER /N) + (T)*(0.25*PAS  + 0.5*PER /N))
@@ -150,8 +150,8 @@ elif MODE == 'GEN-GD':
     E_lin =                X*T*UNC /N       
     S_lin =        (SEN_+  X*T*UNC_/N)  # sen_ due to incomplete cancellation 'tween finite insamples and outsamples
 elif MODE == 'GEN-SGD':
-    E_qua =                X*T*UNC /N        - X*X*( (T*(T-1)/2.0)*(0.5*PAS  + PER  + PAS  + AUD       ) + (T)*(0.0))/N
-    S_qua =         SEN_+  X*T*UNC_/N        + X*X*( (T*(T-1)/2.0)*(0.5*PAS_ + PER_ + PAS_ + AUD_      ) + (T)*(0.0))/N
+    E_qua =                X*T*UNC /N        - X*X*( (T*(T-1)/2.0)*(PAS  + PER ) + (T)*(0.5*SER ))/N
+    S_qua =         SEN_+  X*T*UNC_/N        + X*X*( (T*(T-1)/2.0)*(PAS_ + PER_) + (T)*(0.5*SER_))/N
     E_lin =                X*T*UNC /N       
     S_lin =        (SEN_+  X*T*UNC_/N)  # sen_ due to incomplete cancellation 'tween finite insamples and outsamples
 
