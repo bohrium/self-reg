@@ -19,5 +19,12 @@ plots-logis: experdata_logis.txt gradstats_logis.txt
 	python vis.py experdata_logis.txt gradstats_logis.txt GEN-GD   plots/gen-gd.png   0.03
 	python vis.py experdata_logis.txt gradstats_logis.txt GEN-SGD  plots/gen-sgd.png  0.03
 
+plots-shallow: experdata_shallow.txt gradstats_shallow.txt
+	python vis.py experdata_shallow.txt gradstats_shallow.txt OUT-GD   plots/out-gd.png   0.005
+	python vis.py experdata_shallow.txt gradstats_shallow.txt OUT-SGD  plots/out-sgd.png  0.005
+	python vis.py experdata_shallow.txt gradstats_shallow.txt OUT-DIFF plots/out-diff.png 0.005
+	python vis.py experdata_shallow.txt gradstats_shallow.txt GEN-GD   plots/gen-gd.png   0.005
+	python vis.py experdata_shallow.txt gradstats_shallow.txt GEN-SGD  plots/gen-sgd.png  0.005
+
 extended:
 	python vis.py experdata_death.txt gradstats_death.txt OUT-SGD  plots/out-sgd.extended.png  1.000

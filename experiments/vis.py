@@ -17,11 +17,16 @@ import re
 import sys 
 
 modes = {
-    'OUT-GD':  {'ylims':( 0.4  , 0.7 ), 'title':'GD Test Loss'}, 
-    'OUT-SGD': {'ylims':( 0.4  , 0.7 ), 'title':'SGD Test Loss'},
-    'OUT-DIFF':{'ylims':(-0.02 , 0.04), 'title':'Test-Time Benefit of Stochasticity'},
-    'GEN-GD':  {'ylims':(-0.02 , 0.10), 'title':'GD Generalization Gap'},
-    'GEN-SGD': {'ylims':(-0.02 , 0.10), 'title':'SGD Generalization Gap'},
+    'OUT-GD':  {'ylims':( 0.40 , 0.70 ), 'title':'GD Test Loss'}, 
+    'OUT-SGD': {'ylims':( 0.40 , 0.70 ), 'title':'SGD Test Loss'},
+    'OUT-DIFF':{'ylims':(-0.01 , 0.05 ), 'title':'Test-Time Benefit of Stochasticity'},
+    'GEN-GD':  {'ylims':(-0.01 , 0.2  ), 'title':'GD Generalization Gap'},
+    'GEN-SGD': {'ylims':(-0.01 , 0.2  ), 'title':'SGD Generalization Gap'},
+#    'OUT-GD':  {'ylims':( 0.4  , 0.7 ), 'title':'GD Test Loss'}, 
+#    'OUT-SGD': {'ylims':( 0.4  , 0.7 ), 'title':'SGD Test Loss'},
+#    'OUT-DIFF':{'ylims':(-0.02 , 0.04), 'title':'Test-Time Benefit of Stochasticity'},
+#    'GEN-GD':  {'ylims':(-0.02 , 0.10), 'title':'GD Generalization Gap'},
+#    'GEN-SGD': {'ylims':(-0.02 , 0.10), 'title':'SGD Generalization Gap'},
 ##    'OUT-GD':  {'ylims':( 0.4  , 0.7 ), 'title':'GD Test Loss'}, 
 ##    'OUT-SGD': {'ylims':( 0.4  , 0.7 ), 'title':'SGD Test Loss'},
 ##    'OUT-DIFF':{'ylims':(-0.02 , 0.04), 'title':'Test-Time Benefit of Stochasticity'},

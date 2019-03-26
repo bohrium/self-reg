@@ -166,8 +166,8 @@ class Learner(object):
         ''' Sample weights (as numpy arrays) distributed according to Glorot-Bengio recommended length scales.  These
             weights are intended to be initializers. 
         '''
-        wa = 0.0 + 0.1 * np.random.randn(28*28*28) / (28*28+28)**0.5
-        wb = 0.0 + 0.1 * np.random.randn(28*1) / (28+1)**0.5
+        wa = 0.0 + 0.0 * np.random.randn(28*28*28) / (28*28+28)**0.5 
+        wb = 0.0 + 0.0 * np.random.randn(28*1) / (28+1)**0.5 + (np.arange(0.0, 28.0)-14.0)/28.0
         return (wa,wb)
 
     def initialize_weights(self, wa, wb):
