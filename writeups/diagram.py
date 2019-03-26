@@ -52,6 +52,37 @@ def draw(colors, arcs, filename):
 
     plt.imsave(filename, img)
 
+draw(colors = [red, red],
+     arcs = [(0, 1)],
+     filename = 'rr.png')
+draw(colors = [red, green],
+     arcs = [(0, 1)],
+     filename = 'rg.png')
+draw(colors = [red, red, green],
+     arcs = [(0, 2), (1, 2)],
+     filename = 'rrg.png')
+draw(colors = [red, green, blue],
+     arcs = [(0, 1), (1, 2)],
+     filename = 'rgb.png')
+draw(colors = [red, green, blue],
+     arcs = [(0, 1), (1, 2), (1, 2)],
+     filename = 'rggb.png')
+draw(colors = [red, green, green, blue],
+     arcs = [(0, 1), (1, 3), (2, 3)],
+     filename = 'rggb-a.png')
+draw(colors = [red, green, green, blue],
+     arcs = [(0, 2), (1, 3), (2, 3)],
+     filename = 'rggb-b.png')
+draw(colors = [red, green, blue],
+     arcs = [(0, 1), (0, 1), (1, 2)],
+     filename = 'rrgb.png')
+draw(colors = [red, red, green, blue],
+     arcs = [(0, 2), (1, 2), (2, 3)],
+     filename = 'rrgb-a.png')
+
+
+
+
 draw(colors = [red],
      arcs = [],
      filename = 'sgd-0.png')

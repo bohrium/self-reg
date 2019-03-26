@@ -1,0 +1,29 @@
+\usepackage{amsmath, amsthm, amssymb, graphicx, caption}
+\usepackage[top=1in, bottom=1in, left=1in, right=1in]{geometry}
+\usepackage[dvipsnames]{xcolor}
+
+\newcommand{\BB}{\mathbb{B}} % bools
+\newcommand{\NN}{\mathbb{N}} % naturals
+\newcommand{\ZZ}{\mathbb{Z}} % integers
+\newcommand{\QQ}{\mathbb{Q}} % rationals
+\newcommand{\RR}{\mathbb{R}} % reals
+\newcommand{\CC}{\mathbb{C}} % complexes
+
+\newcommand{\expec}{\mathbb{E}} % expectation
+\newcommand{\var}{\mathbb{V}}   % variance
+\newcommand{\prob}{\mathbb{P}}  % probability
+
+\newcommand{\wrap}[1]{\left( #1 \right)}            % parenthesization
+\newcommand{\abs}[1]{\left| #1 \right|}             % absolute value
+\newcommand{\ang}[1]{\left\langle #1 \right\rangle} % angle brackets 
+
+\newcommand{\customtitle}[1]{\begin{center}\Huge #1\end{center}}                                    % big centered title
+\newcommand{\customsubtitle}[1]{\begin{center}\large #1 \\ \customdate\end{center}}                 % subtitle with date
+\newcommand{\customdate}{\the\year-{\ifnum\month<10 0\fi\the\month}-{\ifnum\day<10 0\fi\the\day}}   % date in yyyy-mm-dd format
+
+\newcounter{csection} \setcounter{csection}{-1}
+\newcounter{csubsection}
+\newcounter{csubsubsection}
+\newcommand{\customsection}[1]{\vspace{6mm} \addtocounter{csection}{1} \par\noindent{\bf \large \arabic{csection}. #1} \setcounter{csubsection}{-1} \newline}
+\newcommand{\customsubsection}[1]{\vspace{4mm} \addtocounter{csubsection}{1} \par\noindent{\large \arabic{csection}.\arabic{csubsection}. #1} \setcounter{csubsubsection}{-1} \newline}
+\newcommand{\customsubsubsection}[1]{\vspace{2mm} \addtocounter{csubsubsection}{1} \par\noindent\textit{\normalsize \arabic{csection}.\arabic{csubsection}.\arabic{csubsubsection}. #1} \newline}
