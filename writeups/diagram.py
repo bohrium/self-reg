@@ -143,6 +143,10 @@ draw(colors = [red, green, blue],
      arcs = [(0, 2), (0, 2), (1, 2)], 
      filename = 'sgd-3j.png')
 
+draw(colors = [red, green, blue],
+     arcs = [(0, 1), (0, 2), (1, 2)], 
+     filename = 'sgd-3k.png')
+
 draw(colors = [red, green],
      arcs = [(0, 1), (0, 1), (0, 1)], 
-     filename = 'sgd-3k.png')
+     filename = 'sgd-3l.png')

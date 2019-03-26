@@ -3,7 +3,7 @@
 
 \newcommand{\half}{\frac{1}{2}}
 \newcommand{\sixth}{\frac{1}{6}}
-\newcommand{\dia}[1]{\includegraphics[height=0.8cm]{#1}}
+\newcommand{\dia}[1]{\includegraphics[height=0.7cm]{#1}}
 
 \begin{document}
 
@@ -45,10 +45,14 @@
             &+ \eta^2 {T \choose 2} \wrap{\dia{sgd-2a} + \half \dia{sgd-2b}}
              + \eta^2 {T \choose 1} \wrap{\half \dia{sgd-2c}} \\
             &- \eta^3 {T \choose 3} \wrap{\substack{
-                \dia{sgd-3a} + \half \dia{sgd-3b} + \half \dia{sgd-3c} + \\
-                 \half \dia{sgd-3d} + \half \dia{sgd-3e} + \sixth \dia{sgd-3f}}} \\
-            &- \eta^3 {T \choose 2} \wrap{\half \dia{sgd-3g} + \half \dia{sgd-3h} + \sixth \dia{sgd-3i} + \sixth \dia{sgd-3j}} \\
-            &- \eta^3 {T \choose 1} \wrap{\sixth \dia{sgd-3k}} 
+                    \dia{sgd-3a} + \half \dia{sgd-3b} + \half \dia{sgd-3c} + \\
+                    \half \dia{sgd-3d} + \half \dia{sgd-3e} + \sixth \dia{sgd-3f}
+                    }} \\  
+            &- \eta^3 {T \choose 2} \wrap{\substack{
+                    \half \dia{sgd-3g} + \sixth \dia{sgd-3i} + \\
+                    \half \dia{sgd-3h} + \frac{2}{2} \dia{sgd-3k} + \sixth \dia{sgd-3j}
+                    }} 
+             - \eta^3 {T \choose 1} \wrap{\sixth \dia{sgd-3l}} 
              + o(\eta^3)
         \end{align*}
         And a routine grouping of terms yields:
@@ -57,9 +61,9 @@
             &- \eta   {T \choose 1} \wrap{\dia{sgd-1}} \\
             &+ \eta^2 {T \choose 2} \wrap{\frac{3}{2}\dia{sgd-2a}}
              + \eta^2 {T \choose 1} \wrap{\half \dia{sgd-2c}} \\
-            &- \eta^3 {T \choose 3} \wrap{\frac{5}{2} \dia{sgd-3a} + \half \dia{sgd-3b} \sixth \dia{sgd-3f}} \\
-            &- \eta^3 {T \choose 2} \wrap{\dia{sgd-3g} + \frac{5}{6} \dia{sgd-3h}} \\
-            &- \eta^3 {T \choose 1} \wrap{\sixth \dia{sgd-3k}} 
+            &- \eta^3 {T \choose 3} \wrap{\frac{5}{2} \dia{sgd-3a} + \half \dia{sgd-3b} + \sixth \dia{sgd-3f}} \\
+            &- \eta^3 {T \choose 2} \wrap{\dia{sgd-3g} + \frac{5}{6} \dia{sgd-3h} + \dia{sgd-3k}} 
+             - \eta^3 {T \choose 1} \wrap{\sixth \dia{sgd-3l}} 
              + o(\eta^3)
         \end{align*}
 
