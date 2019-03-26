@@ -24,31 +24,94 @@ def draw_arc_aa(img, row, col_a, col_b, curve):
     radius = int(((cent_r-row)**2 + (cent_c-col_a)**2)**0.5)
 
     old_r, old_c = row, col_a
-    for c in np.arange(col_a, col_b, 0.049*(col_b-col_a)):
+    for c in list(np.arange(col_a, col_b, 5.0)) + [col_b]:
         r = cent_r - (radius**2 - (c-cent_c)**2)**0.5 
         rr, cc, val = line_aa(old_r, old_c, int(r), int(c))
-        img[rr, cc, :] = 1.0 - np.expand_dims(val, 2)
+        img[rr, cc, :] = np.minimum(img[rr, cc, :], 1.0 - np.expand_dims(val, 2))
         old_r, old_c = int(r), int(c)
 
 black = (0.0, 0.0, 0.0)
 red   = (0.8, 0.2, 0.2)
 green = (0.2, 0.8, 0.2)
 blue  = (0.2, 0.2, 0.8)
+gold  = (0.9, 0.7, 0.0)
 
 def draw(colors, arcs, filename): 
-    baseline = 40
-    width = 20 + (len(colors)-1)*40 
+    baseline = 65
+    width = 40 + (len(colors)-1)*80 
     
-    img = np.ones((50, width, 3), dtype=np.float32)
+    img = np.ones((80, width, 3), dtype=np.float32)
+    counts = {}
     for i,j in arcs:
-        draw_arc_aa(img, baseline, 10+40*i, 10+40*j, 4.0)
+        if (i,j) not in counts:
+            counts[(i,j)] = 0.0 
+        draw_arc_aa(img, baseline, 20+80*i, 20+80*j, 2.0**counts[(i,j)]*abs(i-j))
+        counts[(i,j)] += 1.0
     for i,color in enumerate(colors):
-        draw_circle_aa(img, baseline, 10+40*i, 6, color)
+        draw_circle_aa(img, baseline, 20+80*i, 12, color)
 
     plt.imsave(filename, img)
 
-draw(colors = [red, green, black, red],
-     arcs = [(0, 2), (0, 1), (1,3), (0,3)],
-     filename = 'hi.png')
+draw(colors = [red],
+     arcs = [],
+     filename = 'sgd-0.png')
 
+draw(colors = [red, green],
+     arcs = [(0, 1)],
+     filename = 'sgd-1.png')
 
+draw(colors = [red, green, blue],
+     arcs = [(0, 1), (1, 2)],
+     filename = 'sgd-2a.png')
+
+draw(colors = [red, green, blue],
+     arcs = [(0, 2), (1, 2)],
+     filename = 'sgd-2b.png')
+
+draw(colors = [red, green],
+     arcs = [(0, 1), (0, 1)],
+     filename = 'sgd-2c.png')
+
+draw(colors = [red, green, blue, gold],
+     arcs = [(0, 1), (1, 2), (2, 3)], 
+     filename = 'sgd-3a.png')
+
+draw(colors = [red, green, blue, gold],
+     arcs = [(0, 2), (1, 2), (2, 3)], 
+     filename = 'sgd-3b.png')
+
+draw(colors = [red, green, blue, gold],
+     arcs = [(0, 3), (1, 2), (2, 3)], 
+     filename = 'sgd-3c.png')
+
+draw(colors = [red, green, blue, gold],
+     arcs = [(0, 1), (1, 3), (2, 3)], 
+     filename = 'sgd-3d.png')
+
+draw(colors = [red, green, blue, gold],
+     arcs = [(0, 2), (1, 3), (2, 3)], 
+     filename = 'sgd-3e.png')
+
+draw(colors = [red, green, blue, gold],
+     arcs = [(0, 3), (1, 3), (2, 3)], 
+     filename = 'sgd-3f.png')
+
+draw(colors = [red, green, blue],
+     arcs = [(0, 1), (1, 2), (1, 2)], 
+     filename = 'sgd-3g.png')
+
+draw(colors = [red, green, blue],
+     arcs = [(0, 1), (0, 1), (1, 2)], 
+     filename = 'sgd-3h.png')
+
+draw(colors = [red, green, blue],
+     arcs = [(0, 2), (1, 2), (1, 2)], 
+     filename = 'sgd-3i.png')
+
+draw(colors = [red, green, blue],
+     arcs = [(0, 2), (0, 2), (1, 2)], 
+     filename = 'sgd-3j.png')
+
+draw(colors = [red, green],
+     arcs = [(0, 1), (0, 1), (0, 1)], 
+     filename = 'sgd-3k.png')

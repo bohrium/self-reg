@@ -1,0 +1,34 @@
+\documentclass[12pt]{article}
+\usepackage{sammath}
+
+\newcommand{\half}{\frac{1}{2}}
+\newcommand{\sixth}{\frac{1}{6}}
+\newcommand{\dia}[1]{\includegraphics[height=0.8cm]{#1}}
+
+\begin{document}
+    \customtitle{Perturbative Analysis of SGD}
+
+    \customsection{Datatype of the Loss Landscape}
+
+    \begin{align*}
+        \expec \wrap{\text{SGD Test Loss}} = \dia{sgd-0}
+        &- \eta   {T \choose 1} \wrap{\dia{sgd-1}} \\
+        &+ \eta^2 {T \choose 2} \wrap{\dia{sgd-2a} + \half \dia{sgd-2b}}
+         + \eta^2 {T \choose 1} \wrap{\half \dia{sgd-2c}} \\
+        &- \eta^3 {T \choose 3} \wrap{\substack{
+            \dia{sgd-3a} + \half \dia{sgd-3b} + \half \dia{sgd-3c} + \\
+             \half \dia{sgd-3d} + \half \dia{sgd-3e} + \sixth \dia{sgd-3f}}} \\
+        &- \eta^3 {T \choose 2} \wrap{\half \dia{sgd-3g} + \half \dia{sgd-3h} + \sixth \dia{sgd-3i} + \sixth \dia{sgd-3j}} \\
+        &- \eta^3 {T \choose 1} \wrap{\sixth \dia{sgd-3k}} 
+         + o(\eta^3) \\
+        = \dia{sgd-0}
+        &- \eta   {T \choose 1} \wrap{\dia{sgd-1}} \\
+        &+ \eta^2 {T \choose 2} \wrap{\frac{3}{2}\dia{sgd-2a}}
+         + \eta^2 {T \choose 1} \wrap{\half \dia{sgd-2c}} \\
+        &- \eta^3 {T \choose 3} \wrap{\frac{5}{2} \dia{sgd-3a} + \half \dia{sgd-3b} \sixth \dia{sgd-3f}} \\
+        &- \eta^3 {T \choose 2} \wrap{\half \dia{sgd-3g} + \half \dia{sgd-3h} + \sixth \dia{sgd-3i} + \sixth \dia{sgd-3j}} \\
+        &- \eta^3 {T \choose 1} \wrap{\sixth \dia{sgd-3k}} 
+         + o(\eta^3)
+    \end{align*}
+
+\end{document}
