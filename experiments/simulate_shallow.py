@@ -4,14 +4,14 @@
     descrp: Append summary of SGD and GD losses (on logistic regression on MNIST 0-vs-1 classification) to a file.
             Here, `SGD` means `batch size 1 without replacement`.  
             To run, type:
-                python simulate_logis.py 1000 100 0.00 0.005 12 32 experdata_logis.txt 
-            The                  1000   gives   a number of trials to perform per experimental condition;
-            the                   100   gives   a training set size and number of gradient updates;
-            the                  0.00   gives   a starting learning rate to sweep from;
-            the                  0.05   gives   a ending learning rate to sweep to;
-            the                    12   gives   (one less than) the number of learning rates to sweep through;
-            the                    32   gives   a desired floating point precision (32 or 64);
-            the   experdata_logis.txt   gives   a filename of a log to which to append.
+                python simulate_shallow.py 1000 100 0.00 0.005 12 32 experdata_shallow.txt 
+            The                    1000   gives   a number of trials to perform per experimental condition;
+            the                     100   gives   a training set size and number of gradient updates;
+            the                    0.00   gives   a starting learning rate to sweep from;
+            the                    0.05   gives   a ending learning rate to sweep to;
+            the                      12   gives   (one less than) the number of learning rates to sweep through;
+            the                      32   gives   a desired floating point precision (32 or 64);
+            the   experdata_shallow.txt   gives   a filename of a log to which to append.
 '''
 
 import tensorflow as tf
@@ -134,14 +134,19 @@ class Learner(object):
         self.Images = tf.placeholder(precision, shape=[None, 28*28])
         self.Labels= tf.placeholder(precision, shape=[None])
 
-        self.Weights = tf.get_variable('flattened', shape=[28*28*1], dtype=precision)
-        self.WeightsA = tf.reshape(self.Weights, [28*28, 1]) 
+        sizeA = 28*28*28
+        sizeB = 28*1
+        self.Weights = tf.get_variable('flattened', shape=[28*28*28+28*1], dtype=precision)
+        self.WeightsA = tf.reshape(self.Weights[:sizeA], [28*28, 28]) 
+        self.WeightsB = tf.reshape(self.Weights[sizeA:], [28, 1]) 
 
-        self.InitWeightsA = tf.placeholder(precision, shape=[28*28*1])
-        self.Inits = tf.concat([tf.reshape(init, [-1]) for init in [self.InitWeightsA]], axis=0)
+        self.InitWeightsA = tf.placeholder(precision, shape=[28*28*28])
+        self.InitWeightsB = tf.placeholder(precision, shape=[28*1])
+        self.Inits = tf.concat([tf.reshape(init, [-1]) for init in [self.InitWeightsA, self.InitWeightsB]], axis=0)
         self.Initializer = tf.assign(self.Weights, self.Inits)
 
-        self.Logits = tf.reshape(tf.matmul(self.Images, self.WeightsA), [-1])
+        self.Hidden = tf.math.tanh(tf.matmul(self.Images, self.WeightsA))
+        self.Logits = tf.reshape(tf.matmul(self.Hidden, self.WeightsB), [-1])
         self.Losses = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.Labels, logits=self.Logits) 
 
     def create_trainer(self, precision=tf.float32):
@@ -161,13 +166,15 @@ class Learner(object):
         ''' Sample weights (as numpy arrays) distributed according to Glorot-Bengio recommended length scales.  These
             weights are intended to be initializers. 
         '''
-        wa = 0.0 + 0.0 * np.random.randn(28*28) / (28*28)**0.5
-        return (wa,)
+        wa = 0.0 + 0.1 * np.random.randn(28*28*28) / (28*28+28)**0.5
+        wb = 0.0 + 0.1 * np.random.randn(28*1) / (28+1)**0.5
+        return (wa,wb)
 
-    def initialize_weights(self, wa):
+    def initialize_weights(self, wa, wb):
         ''' Initialize weights as a RUNTIME OPERATION, not by creating new graph nodes. '''
         self.session.run(self.Initializer, feed_dict={
             self.InitWeightsA:wa,
+            self.InitWeightsB:wb,
         })
 
     def run(self, dataset, ins_time, batch_size, learning_rate, opt='sgd'): 

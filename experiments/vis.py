@@ -17,16 +17,21 @@ import re
 import sys 
 
 modes = {
-#    'OUT-GD':  {'ylims':( 0.4  , 0.7 ), 'title':'GD Test Loss'}, 
-#    'OUT-SGD': {'ylims':( 0.4  , 0.7 ), 'title':'SGD Test Loss'},
-#    'OUT-DIFF':{'ylims':(-0.02 , 0.04), 'title':'Test-Time Benefit of Stochasticity'},
-#    'GEN-GD':  {'ylims':(-0.05 , 0.05), 'title':'GD Generalization Gap'},
-#    'GEN-SGD': {'ylims':(-0.05 , 0.05), 'title':'SGD Generalization Gap'},
-    'OUT-GD':  {'ylims':( 0.45 , 0.7 ), 'title':'GD Test Loss'}, 
-    'OUT-SGD': {'ylims':( 0.45 , 0.7 ), 'title':'SGD Test Loss'},
+    'OUT-GD':  {'ylims':( 0.4  , 0.7 ), 'title':'GD Test Loss'}, 
+    'OUT-SGD': {'ylims':( 0.4  , 0.7 ), 'title':'SGD Test Loss'},
     'OUT-DIFF':{'ylims':(-0.02 , 0.04), 'title':'Test-Time Benefit of Stochasticity'},
-    'GEN-GD':  {'ylims':(-0.05 , 0.6 ), 'title':'GD Generalization Gap'},
-    'GEN-SGD': {'ylims':(-0.05 , 0.6 ), 'title':'SGD Generalization Gap'},
+    'GEN-GD':  {'ylims':(-0.02 , 0.10), 'title':'GD Generalization Gap'},
+    'GEN-SGD': {'ylims':(-0.02 , 0.10), 'title':'SGD Generalization Gap'},
+##    'OUT-GD':  {'ylims':( 0.4  , 0.7 ), 'title':'GD Test Loss'}, 
+##    'OUT-SGD': {'ylims':( 0.4  , 0.7 ), 'title':'SGD Test Loss'},
+##    'OUT-DIFF':{'ylims':(-0.02 , 0.04), 'title':'Test-Time Benefit of Stochasticity'},
+##    'GEN-GD':  {'ylims':(-0.05 , 0.05), 'title':'GD Generalization Gap'},
+##    'GEN-SGD': {'ylims':(-0.05 , 0.05), 'title':'SGD Generalization Gap'},
+#    'OUT-GD':  {'ylims':( 0.45 , 0.7 ), 'title':'GD Test Loss'}, 
+#    'OUT-SGD': {'ylims':( 0.45 , 0.7 ), 'title':'SGD Test Loss'},
+#    'OUT-DIFF':{'ylims':(-0.02 , 0.04), 'title':'Test-Time Benefit of Stochasticity'},
+#    'GEN-GD':  {'ylims':(-0.05 , 0.6 ), 'title':'GD Generalization Gap'},
+#    'GEN-SGD': {'ylims':(-0.05 , 0.6 ), 'title':'SGD Generalization Gap'},
 ##    'OUT-GD':  {'ylims':( 5.5 , 8.0 ), 'title':'GD Test Loss'}, 
 ##    'OUT-SGD': {'ylims':( 5.5 , 8.0 ), 'title':'SGD Test Loss'},
 ##    'OUT-DIFF':{'ylims':(-0.05, 0.30), 'title':'Test-Time Benefit of Stochasticity'},
@@ -65,7 +70,7 @@ with open(GRADSTATS_FILENM) as f:
     split_line = lambda l: l.replace(',', ' ').split() 
     is_number = lambda s: s.replace('.','').replace('-','').isnumeric() 
     SEN, INT, UNC, PAS, AUD, PER, SER = tuple(float(x)               for x in split_line(lines[1]) if is_number(x))
-    concentration = (1.0/MTRIALS**0.5) + (1.0/10000.0**0.5) 
+    concentration = (1.0/MTRIALS**0.5) + (1.0/5000.0**0.5) 
     SEN_,INT_,UNC_,PAS_,AUD_,PER_,SER_ = tuple(float(x)*concentration for x in split_line(lines[2]) if is_number(x))
 
     #--------------------------------------------------------------------------#
@@ -129,7 +134,7 @@ X = np.array(sorted(X))
         G. trace of hessian times covariance            {(ab)}{(a)(b)} - {(ab)}{(a)}{(b)}       PERIL 
 '''
 
-N = T = 2
+N = T = 10
 E_qua = E_lin = None
 if MODE == 'OUT-GD':
     E_qua =         SEN  - X*T*INT  + X*X*( (T*(T-1)/2.0)*(0.75*PAS + 0.5*AUD  /N + 0.5*PER /N) + (T)*(0.25*PAS  + 0.5*PER /N))
