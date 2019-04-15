@@ -17,16 +17,11 @@ import re
 import sys 
 
 modes = {
-    'OUT-GD':  {'ylims':( 0.62 , 0.70 ), 'title':'GD Test Loss'}, 
-    'OUT-SGD': {'ylims':( 0.62 , 0.70 ), 'title':'SGD Test Loss'},
-    'OUT-DIFF':{'ylims':(-0.001, 0.003), 'title':'Test-Time Benefit of Stochasticity'},
-    'GEN-GD':  {'ylims':(-0.005, 0.03 ), 'title':'GD Generalization Gap'},
-    'GEN-SGD': {'ylims':(-0.005, 0.03 ), 'title':'SGD Generalization Gap'},
-##    'OUT-GD':  {'ylims':( 0.20 , 0.70 ), 'title':'GD Test Loss'}, 
-##    'OUT-SGD': {'ylims':( 0.20 , 0.70 ), 'title':'SGD Test Loss'},
-##    'OUT-DIFF':{'ylims':(-0.01 , 0.05 ), 'title':'Test-Time Benefit of Stochasticity'},
-##    'GEN-GD':  {'ylims':(-0.01 , 0.2  ), 'title':'GD Generalization Gap'},
-##    'GEN-SGD': {'ylims':(-0.01 , 0.2  ), 'title':'SGD Generalization Gap'},
+    'OUT-GD':  {'ylims':( 0.20 , 0.70 ), 'title':'GD Test Loss'}, 
+    'OUT-SGD': {'ylims':( 0.20 , 0.70 ), 'title':'SGD Test Loss'},
+    'OUT-DIFF':{'ylims':(-0.01 , 0.05 ), 'title':'Test-Time Benefit of Stochasticity'},
+    'GEN-GD':  {'ylims':(-0.01 , 0.2  ), 'title':'GD Generalization Gap'},
+    'GEN-SGD': {'ylims':(-0.01 , 0.2  ), 'title':'SGD Generalization Gap'},
 #    'OUT-GD':  {'ylims':( 0.4  , 0.7 ), 'title':'GD Test Loss'}, 
 #    'OUT-SGD': {'ylims':( 0.4  , 0.7 ), 'title':'SGD Test Loss'},
 #    'OUT-DIFF':{'ylims':(-0.02 , 0.04), 'title':'Test-Time Benefit of Stochasticity'},
@@ -149,16 +144,53 @@ E_qua = E_lin = None
 if MODE == 'OUT-GD':
     E_qua =         SEN  - X*T*INT  + X*X*( (T*(T-1)/2.0)*(0.75*PAS + 0.5*AUD  /N + 0.5*PER /N) + (T)*(0.25*PAS  + 0.5*PER /N))
     S_qua =        (SEN_ + X*T*INT_ + X*X*( (T*(T-1)/2.0)*(0.75*PAS_+ 0.5*AUD_ /N + 0.5*PER_/N) + (T)*(0.25*PAS_ + 0.5*PER_/N)))
+
+    A = SEN
+    B = -T*INT
+    C = 2.0 * ( (T*(T-1)/2.0)*(0.75*PAS + 0.5*AUD  /N + 0.5*PER /N) + (T)*(0.25*PAS  + 0.5*PER /N))
+    b = -C/B
+    a = -B/b
+    c = A-a
+    E_qua = np.exp(-b*X)*a + c 
+
     E_lin =         SEN  - X*T*INT 
     S_lin =         SEN_ + X*T*INT_
 elif MODE == 'OUT-SGD':
     E_qua =         SEN  - X*T*INT  + X*X*( (T*(T-1)/2.0)*(0.75*PAS                           ) + (T)*(0.25*PAS  + 0.5*PER ))
     S_qua =        (SEN_ + X*T*INT_ + X*X*( (T*(T-1)/2.0)*(0.75*PAS_                          ) + (T)*(0.25*PAS_ + 0.5*PER_)))
+
+    A = SEN
+    B = -T*INT
+    C = 2.0 * ( (T*(T-1)/2.0)*(0.75*PAS                           ) + (T)*(0.25*PAS  + 0.5*PER ))
+    b = -C/B
+    a = -B/b
+    c = A-a
+    E_qua = np.exp(-b*X)*a + c 
+
     E_lin =         SEN  - X*T*INT 
     S_lin =         SEN_ + X*T*INT_
 elif MODE == 'OUT-DIFF':
     E_qua =                           X*X*( (T*(T-1)/2.0)*(           0.5*AUD  /N + 0.5*PER /N) + (T)*(-0.5*PER  + 0.5*PER /N))
     S_qua =        (                  X*X*( (T*(T-1)/2.0)*(           0.5*AUD_ /N + 0.5*PER_/N) + (T)*( 0.5*PER_ - 0.5*PER_/N)))
+
+    A = SEN
+    B = -T*INT
+    C = 2.0 * ( (T*(T-1)/2.0)*(0.75*PAS + 0.5*AUD  /N + 0.5*PER /N) + (T)*(0.25*PAS  + 0.5*PER /N))
+    b = -C/B
+    a = -B/b
+    c = A-a
+    E_qua_gd = np.exp(-b*X)*a + c 
+
+    A = SEN
+    B = -T*INT
+    C = 2.0 * ( (T*(T-1)/2.0)*(0.75*PAS                           ) + (T)*(0.25*PAS  + 0.5*PER ))
+    b = -C/B
+    a = -B/b
+    c = A-a
+    E_qua_sgd = np.exp(-b*X)*a + c 
+
+    E_qua = E_qua_gd - E_qua_sgd
+
     E_lin =                X*0.0
     S_lin =                X*0.0
 elif MODE == 'GEN-GD':
