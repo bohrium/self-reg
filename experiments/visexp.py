@@ -16,12 +16,26 @@ import numpy as np
 import re
 import sys 
 
+
+N = T = 10
+
 modes = {
-    'OUT-GD':  {'ylims':( 0.20 , 0.70 ), 'title':'GD Test Loss'}, 
-    'OUT-SGD': {'ylims':( 0.20 , 0.70 ), 'title':'SGD Test Loss'},
-    'OUT-DIFF':{'ylims':(-0.01 , 0.05 ), 'title':'Test-Time Benefit of Stochasticity'},
-    'GEN-GD':  {'ylims':(-0.01 , 0.2  ), 'title':'GD Generalization Gap'},
-    'GEN-SGD': {'ylims':(-0.01 , 0.2  ), 'title':'SGD Generalization Gap'},
+    'OUT-GD':  {'ylims':( 0.40 , 0.80 ), 'title':'GD Test Loss'}, 
+    'OUT-SGD': {'ylims':( 0.40 , 0.80 ), 'title':'SGD Test Loss'},
+    'OUT-DIFF':{'ylims':(-0.10 , 0.10 ), 'title':'Test-Time Benefit of Stochasticity'},
+    'GEN-GD':  {'ylims':(-0.05 , 0.25 ), 'title':'GD Generalization Gap'},
+    'GEN-SGD': {'ylims':(-0.05 , 0.25 ), 'title':'SGD Generalization Gap'},
+#
+#    'OUT-GD':  {'ylims':( 0.40 , 0.80 ), 'title':'GD Test Loss'}, 
+#    'OUT-SGD': {'ylims':( 0.40 , 0.80 ), 'title':'SGD Test Loss'},
+#    'OUT-DIFF':{'ylims':(-0.04 , 0.02 ), 'title':'Test-Time Benefit of Stochasticity'},
+#    'GEN-GD':  {'ylims':(-0.02 , 0.09 ), 'title':'GD Generalization Gap'},
+#    'GEN-SGD': {'ylims':(-0.02 , 0.09 ), 'title':'SGD Generalization Gap'},
+##    'OUT-GD':  {'ylims':( 0.20 , 0.70 ), 'title':'GD Test Loss'}, 
+##    'OUT-SGD': {'ylims':( 0.20 , 0.70 ), 'title':'SGD Test Loss'},
+##    'OUT-DIFF':{'ylims':(-0.01 , 0.05 ), 'title':'Test-Time Benefit of Stochasticity'},
+##    'GEN-GD':  {'ylims':(-0.01 , 0.2  ), 'title':'GD Generalization Gap'},
+##    'GEN-SGD': {'ylims':(-0.01 , 0.2  ), 'title':'SGD Generalization Gap'},
 #    'OUT-GD':  {'ylims':( 0.4  , 0.7 ), 'title':'GD Test Loss'}, 
 #    'OUT-SGD': {'ylims':( 0.4  , 0.7 ), 'title':'SGD Test Loss'},
 #    'OUT-DIFF':{'ylims':(-0.02 , 0.04), 'title':'Test-Time Benefit of Stochasticity'},
@@ -139,7 +153,6 @@ X = np.array(sorted(X))
         G. trace of hessian times covariance            {(ab)}{(a)(b)} - {(ab)}{(a)}{(b)}       PERIL 
 '''
 
-N = T = 10
 E_qua = E_lin = None
 if MODE == 'OUT-GD':
     E_qua =         SEN  - X*T*INT  + X*X*( (T*(T-1)/2.0)*(0.75*PAS + 0.5*AUD  /N + 0.5*PER /N) + (T)*(0.25*PAS  + 0.5*PER /N))

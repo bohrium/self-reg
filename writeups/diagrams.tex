@@ -7,64 +7,74 @@
 
 \begin{document}
 
-    \customsection{Diagrams for SGD Test Loss}
-        We use diagrams for book-keeping of the Taylor terms (of test loss at a fixed initial weight). 
-        Each color in a diagram represents a data value and thus selects a particular loss function from the
-        data-parameterized distribution of loss functions.  Each node in a diagram represents a tensor obtained from
-        derivatives of the loss function corresponding to that node's color.  It is a diagram's edges in a diagram that
-        specify those derivative tensors.  We understand the edges as directed from left to right, with the source
-        acting on the target by differentiation.  Finally, a diagram's value is the expectation over all iid assigments
-        of data to the colors.  Thus,
-        $$
-            \dia{rg} := \expec_{\text{red},\text{green}} \nabla^a(l_{\text{red}}) \nabla^a(l_{\text{green}})
-            ~~~~~
-            \dia{rr} := \expec_{\text{red}} \nabla^a(l_{\text{red}}) \nabla^a(l_{\text{red}})
-        $$
-        $$
-            \dia{rgb} := \expec_{\text{red},\text{green},\text{blue}} \nabla^a(l_{\text{red}}) \nabla^a \nabla^b(l_{\text{green}}) \nabla^b(l_{\text{blue}})
-        $$
-        $$
-            \dia{sgd-2b} := \expec_{\text{red},\text{green},\text{blue}} \nabla^a(l_{\text{red}}) \nabla^b(l_{\text{green}}) \nabla^a \nabla^b(l_{\text{blue}})
-        $$
-        We see that $\dia{rr}-\dia{rg}$ gives the trace of the covariance of gradients.
-        Moreover, $\dia{sgd-2a} = \dia{sgd-2b}$, illustrating how diagram notation can streamline computation by
-        helping to group terms.  However, we caution that a diagram's value generally depends on a diagram's digraph 
-        structure, not just its undirected structure.  For example:  
-        $$
-            \dia{rggb} = \dia{rggb-a} + \dia{rggb-b} \neq \dia{rrgb-a} = \dia{rrgb} 
-        $$
+    \customsection{Diagrammatic Expansion of Losses}
+        \customsubsection{Use and Interpretation of Diagrams}
+            We use diagrams for book-keeping of the Taylor terms (of test loss at a fixed initial weight). 
+            Each color in a diagram represents a data value and thus selects a particular loss function from the
+            data-parameterized distribution of loss functions.  Each node in a diagram represents a tensor obtained from
+            derivatives of the loss function corresponding to that node's color.  It is a diagram's edges that
+            specify those derivative tensors.  We understand the edges as directed from left to right, with the source
+            acting on the target by differentiation.  Finally, a diagram's value is the expectation over all iid assigments
+            of data to the colors.  Thus,
+            $$
+                \dia{rg} := \expec_{\text{red},\text{green}} \nabla^a(l_{\text{red}}) \nabla^a(l_{\text{green}})
+                ~~~~~
+                \dia{rr} := \expec_{\text{red}} \nabla^a(l_{\text{red}}) \nabla^a(l_{\text{red}})
+            $$
+            $$
+                \dia{rgb} := \expec_{\text{red},\text{green},\text{blue}} \nabla^a(l_{\text{red}}) \nabla^a \nabla^b(l_{\text{green}}) \nabla^b(l_{\text{blue}})
+            $$
+            $$
+                \dia{sgd-2b} := \expec_{\text{red},\text{green},\text{blue}} \nabla^a(l_{\text{red}}) \nabla^b(l_{\text{green}}) \nabla^a \nabla^b(l_{\text{blue}})
+            $$
+            We see that $\dia{rr}-\dia{rg}$ gives the trace of the covariance of gradients.
+            Moreover, $\dia{sgd-2a} = \dia{sgd-2b}$, illustrating how diagram notation can streamline computation by
+            helping to group terms.  However, we caution that a diagram's value generally depends on that diagram's digraph 
+            structure, not just its undirected structure.  For example:  
+            $$
+                \dia{rggb} = \dia{rggb-a} + \dia{rggb-b} \neq \dia{rrgb-a} = \dia{rrgb} 
+            $$
 
-        Thus prepared, we may expand the test loss after $T$ updates, each with batch-size $1$ sampled without
-        replacement.  The recipe is to draw all the diagrams whose underlying poset has a unique rightmost element.
-        Each node in the diagram contributes a symmetry factor $1/i!$ where $i$ is the node's in-degree.  On top of
-        that, a diagram with $a$ edges and $v$ vertices has an overall combinatorial weight of
-        $(-\eta)^a {T \choose v-1}$.  We obtain:
-        \begin{align*}
-            \expec \wrap{\text{SGD Test Loss}} = \dia{sgd-0}
-            &- \eta   {T \choose 1} \wrap{\dia{sgd-1}} \\
-            &+ \eta^2 {T \choose 2} \wrap{\dia{sgd-2a} + \half \dia{sgd-2b}}
-             + \eta^2 {T \choose 1} \wrap{\half \dia{sgd-2c}} \\
-            &- \eta^3 {T \choose 3} \wrap{\substack{
-                    \dia{sgd-3a} + \half \dia{sgd-3b} + \half \dia{sgd-3c} + \\
-                    \half \dia{sgd-3d} + \half \dia{sgd-3e} + \sixth \dia{sgd-3f}
-                    }} \\  
-            &- \eta^3 {T \choose 2} \wrap{\substack{
-                    \half \dia{sgd-3g} + \sixth \dia{sgd-3i} + \\
-                    \half \dia{sgd-3h} + \frac{2}{2} \dia{sgd-3k} + \sixth \dia{sgd-3j}
-                    }} 
-             - \eta^3 {T \choose 1} \wrap{\sixth \dia{sgd-3l}} 
-             + o(\eta^3)
-        \end{align*}
-        And a routine grouping of terms yields:
-        \begin{align*}
-            \cdots = \dia{sgd-0}
-            &- \eta   {T \choose 1} \wrap{\dia{sgd-1}} \\
-            &+ \eta^2 {T \choose 2} \wrap{\frac{3}{2}\dia{sgd-2a}}
-             + \eta^2 {T \choose 1} \wrap{\half \dia{sgd-2c}} \\
-            &- \eta^3 {T \choose 3} \wrap{\frac{5}{2} \dia{sgd-3a} + \half \dia{sgd-3b} + \sixth \dia{sgd-3f}} \\
-            &- \eta^3 {T \choose 2} \wrap{\dia{sgd-3g} + \frac{5}{6} \dia{sgd-3h} + \dia{sgd-3k}} 
-             - \eta^3 {T \choose 1} \wrap{\sixth \dia{sgd-3l}} 
-             + o(\eta^3)
-        \end{align*}
+        \customsubsection{SGD Test Loss}
+            Thus prepared, we may expand the test loss after $T$ updates, each with batch-size $1$ sampled without
+            replacement.  The recipe is to draw all the diagrams with entirely distinct colors whose underlying poset
+            has a unique rightmost element.
+            Each node in the diagram contributes a symmetry factor $o!/i!\prod_k o_k!$ where $o, i$ are the node's
+            in- and out- degrees and the $o_k$ count the out-edges to node $k$.  On top of
+            that, a diagram with $a$ edges and $v$ vertices has an overall combinatorial weight of
+            $(-\eta)^a {T \choose v-1}$.  We obtain:
+            \begin{align*}
+                \expec \wrap{\text{SGD Test Loss}} = \dia{sgd-0}
+                &- \eta   {T \choose 1} \wrap{\dia{sgd-1}} \\
+                &+ \eta^2 {T \choose 2} \wrap{\dia{sgd-2a} + \half \dia{sgd-2b}}
+                 + \eta^2 {T \choose 1} \wrap{\half \dia{sgd-2c}} \\
+                &- \eta^3 {T \choose 3} \wrap{\substack{
+                        \dia{sgd-3a} + \half \dia{sgd-3b} + \half \dia{sgd-3c} + \\
+                        \half \dia{sgd-3d} + \half \dia{sgd-3e} + \sixth \dia{sgd-3f}
+                        }} \\  
+                &- \eta^3 {T \choose 2} \wrap{\substack{
+                        \half \dia{sgd-3g} + \sixth \dia{sgd-3i} + \\
+                        \half \dia{sgd-3h} + \frac{2}{2} \dia{sgd-3k} + \sixth \dia{sgd-3j}
+                        }} 
+                 - \eta^3 {T \choose 1} \wrap{\sixth \dia{sgd-3l}} 
+                 + o(\eta^3)
+            \end{align*}
+            And a routine grouping of terms yields:
+            \begin{align*}
+                \cdots = \dia{sgd-0}
+                &- \eta   {T \choose 1} \wrap{\dia{sgd-1}} \\
+                &+ \eta^2 {T \choose 2} \wrap{\frac{3}{2}\dia{sgd-2a}}
+                 + \eta^2 {T \choose 1} \wrap{\half \dia{sgd-2c}} \\
+                &- \eta^3 {T \choose 3} \wrap{\frac{5}{2} \dia{sgd-3a} + \half \dia{sgd-3b} + \sixth \dia{sgd-3f}} \\
+                &- \eta^3 {T \choose 2} \wrap{\dia{sgd-3g} + \frac{5}{6} \dia{sgd-3h} + \dia{sgd-3k}} 
+                 - \eta^3 {T \choose 1} \wrap{\sixth \dia{sgd-3l}} 
+                 + o(\eta^3)
+            \end{align*}
 
+        \customsubsection{GD and Train Loss}
+            To compute losses for non-stochastic gradient descent, we allow non-rightmost nodes to share colors with
+            each other.
+            To compute train losses, we allow the rightmost node to share a color with previous nodes with probability
+            $C/N$, where $C$ counts the number of non-rightmost colors in the diagram. 
+            We may thus compute (by subtraction) generalization gaps and the benefit of stochasticity.
 \end{document}

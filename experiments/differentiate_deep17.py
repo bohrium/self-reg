@@ -1,13 +1,13 @@
 ''' author: samtenka
-    change: 2019-04-14
+    change: 20125.04-14
     create: 2017-10-07
     descrp: Estimate and save gradient statistics (on binary MNIST)
             To run, type:
-                python differentiate_deep.py 10000 24 32 gradstats_deep.txt
+                python differentiate_deep17.py 10000 24 32 gradstats_deep17.txt
             The                 10000   gives   a number of trials to perform;
             the                    24   gives   a training set size;
             the                    32   gives   a desired floating point precision (32 or 64);
-            the    gradstats_deep.txt   gives   a filename to overwrite with results.
+            the    gradstats_deep17.txt   gives   a filename to overwrite with results.
 '''
 
 import tensorflow as tf
@@ -112,7 +112,7 @@ def gradient_stats(Losses, Weights, BATCH_SIZE):
     GHG_ = tf.reduce_mean(tf.reduce_sum(tf.multiply(Gradients_0, HG_), axis=1), axis=0)
 
     Serendipity = GHG - GHG_ 
-    
+
     return AvgLoss, MeanSqrGrad, TraceCovar, Passion, Audacity, Peril, Serendipity
 
 
@@ -128,7 +128,7 @@ class Dataset(object):
         through 9).  This class provides access to MNIST via in-sample and out-of-sample batches.  It allows us to
         sample from a training set potentially smaller than the the overall MNIST training set, and to sample with or
         without replacement.  Note that we DO NOT load labels as one-hot vectors.
-        Thus, `get_batch` and `get_all` each return two arrays of shape (???, 28*28) and (???), respectively.
+        Thus, `get_batch` and `get_all` each return two arrays of shape (???, 28) and (???), respectively.
     '''
     def __init__(self):
         ''' Read MNIST, with labels one-hot. '''
@@ -138,17 +138,26 @@ class Dataset(object):
         self.ins_labels = []
         for img, lbl in zip(mnist.train.images, mnist.train.labels):  
             if 2<=lbl: continue
-            self.ins_images.append(img)
+            self.ins_images.append(np.reshape(img, (28, 28))[:, 14])
             self.ins_labels.append(lbl)
-        self.ins_images = np.array(self.ins_images)
-        self.ins_labels = np.array(self.ins_labels)
 
         self.out_images = []
         self.out_labels = []
         for img, lbl in zip(mnist.test.images, mnist.test.labels):  
             if 2<=lbl: continue
-            self.out_images.append(img)
+            self.out_images.append(np.reshape(img, (28, 28))[:, 14])
             self.out_labels.append(lbl)                      
+
+
+        total_length = len(self.ins_images)+len(self.out_images)
+        self.ins_images, self.out_images = ((self.ins_images + self.out_images)[:total_length//2],
+                                            (self.ins_images + self.out_images)[total_length//2:])
+        self.ins_labels, self.out_labels = ((self.ins_labels + self.out_labels)[:total_length//2],
+                                            (self.ins_labels + self.out_labels)[total_length//2:])   
+        print(total_length//2, total_length-total_length//2)
+
+        self.ins_images = np.array(self.ins_images)
+        self.ins_labels = np.array(self.ins_labels)
         self.out_images = np.array(self.out_images)
         self.out_labels = np.array(self.out_labels)
 
@@ -161,7 +170,7 @@ class Dataset(object):
         '''
         indices = np.random.choice(np.arange(len(self.ins_images)), size=sample_size, replace=False)
         self.sample_images = self.ins_images[indices]
-        self.sample_labels = self.ins_labels [indices]
+        self.sample_labels = self.ins_labels[indices]
         self.sample_size = sample_size
         self.index = 0
 
@@ -172,19 +181,17 @@ class Dataset(object):
         '''
         if split == 'out': 
             indices = np.random.choice(np.arange(len(self.out_images)), size=batch_size, replace=False)
-            sample_images = self.ins_images[indices]
-            sample_labels = self.ins_labels [indices]
-            return sample_images, sample_labels
+            return self.out_images[indices], self.out_labels[indices]
         if opt == 'gd': 
             return self.sample_images, self.sample_labels
         if with_replacement:
-            indices = np.random.choice(self.ins_size, size)
-            return self.ins_inputs[indices], self.ins_outputs[indices]
-        if self.index + batch_size > self.sample_size: 
+            indices = np.random.choice(self.sample_images, size)
+            return self.sample_images[indices], self.sample_labels[indices]
+        if self.index + batch_size > self.sample_size: # then shuffle 
             assert(self.index == self.sample_size)
             indices = np.random.shuffle(np.arange(self.sample_size))
-            self.sample_images = self.sample_images[indices] 
-            self.sample_labels = self.sample_outputs[indices] 
+            self.sample_images = self.sample_images[indices]
+            self.sample_labels = self.sample_labels[indices] 
             self.index = 0
         rtrn = self.sample_images[self.index:self.index+batch_size], self.sample_labels[self.index:self.index+batch_size]
         self.index += batch_size
@@ -204,7 +211,7 @@ class Dataset(object):
 ################################################################################
 
 class Learner(object):
-    ''' Creates, (re)initializes, trains, and evaluates a deep neural network. '''
+    ''' Creates, (re)initializes, trains, and evaluates a deep17 neural network. '''
     def __init__(self, batch_size, precision=PRECISION):
         self.create_model(batch_size, precision)
         self.create_trainer(batch_size, precision)
@@ -213,20 +220,20 @@ class Learner(object):
 
     def create_model(self, batch_size, precision=tf.float32):
         ''' Define the loss landscape as a function of weights and data. '''
-        self.Images = tf.placeholder(precision, shape=[batch_size, 28*28])
+        self.Images = tf.placeholder(precision, shape=[batch_size, 28])
         self.Labels= tf.placeholder(precision, shape=[batch_size])
 
-        sizeA = 28*28*85
-        sizeB = 85*9
-        sizeC = 9*1
+        sizeA = 28*25
+        sizeB = 25*25
+        sizeC = 25*1
         self.Weights = tf.get_variable('flattened', shape=[sizeA + sizeB + sizeC, batch_size], dtype=precision)
-        self.WeightsA = tf.transpose(tf.reshape(self.Weights[:sizeA,:], [28*28, 85, batch_size]), perm=(2,0,1))
-        self.WeightsB = tf.transpose(tf.reshape(self.Weights[sizeA:sizeA+sizeB,:], [85, 9, batch_size]), perm=(2,0,1))
-        self.WeightsC = tf.transpose(tf.reshape(self.Weights[sizeA+sizeB:,:], [9, 1, batch_size]), perm=(2,0,1))
+        self.WeightsA = tf.transpose(tf.reshape(self.Weights[:sizeA,:], [28, 25, batch_size]), perm=(2,0,1))
+        self.WeightsB = tf.transpose(tf.reshape(self.Weights[sizeA:sizeA+sizeB,:], [25, 25, batch_size]), perm=(2,0,1))
+        self.WeightsC = tf.transpose(tf.reshape(self.Weights[sizeA+sizeB:,:], [25, 1, batch_size]), perm=(2,0,1))
 
-        self.InitWeightsA = tf.placeholder(precision, shape=[28*28*85])
-        self.InitWeightsB = tf.placeholder(precision, shape=[85*9])
-        self.InitWeightsC = tf.placeholder(precision, shape=[9*1])
+        self.InitWeightsA = tf.placeholder(precision, shape=[28*25])
+        self.InitWeightsB = tf.placeholder(precision, shape=[25*25])
+        self.InitWeightsC = tf.placeholder(precision, shape=[25*1])
         self.Inits = tf.concat([tf.reshape(init, [-1]) for init in [self.InitWeightsA, self.InitWeightsB, self.InitWeightsC]], axis=0)
         self.Replicated = tf.stack([self.Inits]*batch_size, axis=1) 
         self.Initializer = tf.assign(self.Weights, self.Replicated)
@@ -248,9 +255,9 @@ class Learner(object):
         ''' Sample weights (as numpy arrays) distributed according to Glorot-Bengio recommended length scales.  These
             weights are intended to be initializers. 
         '''
-        wa = 0.0 + 0.0 * np.random.randn(28*28*85) / (28*28+85)**0.5 
-        wb = 0.0 + 0.0 * np.random.randn(85*9) / (85+9)**0.5         + (np.arange(0.0, 85.0*9.0)/(85.0*9.0)-0.5)
-        wc = 0.0 + 0.0 * np.random.randn( 9*1) / ( 9+1)**0.5         + (np.arange(0.0,  9.0*1.0)/( 9.0*1.0)-0.5)
+        wa = 1.0*(np.arange(0.0,28.0*25.0)/(28.0*25.0)-0.5) #/(28.0+25.0)**0.5
+        wb = 1.0*(np.arange(0.0,25.0*25.0)/(25.0*25.0)-0.5) #/(25.0+25.0)**0.5
+        wc = 1.0*(np.arange(0.0,25.0* 1.0)/(25.0* 1.0)-0.5) #/(25.0+ 1.0)**0.5
         return (wa,wb,wc)
 
     def initialize_weights(self, wa, wb, wc):

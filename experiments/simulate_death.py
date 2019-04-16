@@ -113,7 +113,13 @@ class Learner(object):
         self.Inits = tf.concat([tf.reshape(init, [-1]) for init in [self.InitWeightsA, self.InitWeightsB]], axis=0)
         self.Initializer = tf.assign(self.Weights, self.Inits)
 
-        self.Losses = self.WeightsA - 3*tf.square(tf.square(self.WeightsA)) + tf.square(tf.square(self.WeightsB - tf.multiply(self.WeightsA, self.Data)))
+        #self.Losses = self.WeightsA - 3*tf.square(tf.square(self.WeightsA)) + tf.square(tf.square(self.WeightsB - tf.multiply(self.WeightsA, self.Data)))
+        self.Losses = (
+                  tf.square(self.WeightsA - 1.0)
+                + tf.square(self.WeightsB - 1.0)
+                + self.Data * self.WeightsB * tf.exp(self.WeightsA)
+            )
+
 
     def create_trainer(self, precision=tf.float32):
         ''' Define the loss and corresponding gradient-based update.  The difference between gd and sgd is not codified
@@ -132,8 +138,8 @@ class Learner(object):
         ''' Sample weights (as numpy arrays) distributed according to Glorot-Bengio recommended length scales.  These
             weights are intended to be initializers. 
         '''
-        wa = 1.0 + 0.0 * np.random.randn(1)
-        ba = 1.0 + 0.0 * np.random.randn(1)
+        wa = 0.0 + 0.0 * np.random.randn(1)
+        ba = 0.0 + 0.0 * np.random.randn(1)
         return (wa, ba)
 
     def initialize_weights(self, wa, ba):

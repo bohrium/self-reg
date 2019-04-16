@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015/Debian) (preloaded format=pdflatex 2018.10.23)  26 MAR 2019 15:27
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (TeX Live 2015/Debian) (preloaded format=pdflatex 2018.10.23)  29 MAR 2019 14:37
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -311,11 +311,11 @@ Package caption Info: End \AtBeginDocument code.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-LaTeX Font Info:    Try loading font information for U+msa on input line 18.
+LaTeX Font Info:    Try loading font information for U+msa on input line 19.
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Try loading font information for U+msb on input line 18.
+LaTeX Font Info:    Try loading font information for U+msb on input line 19.
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
@@ -323,47 +323,47 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 <rg.png, id=1, 120.45pt x 80.3pt>
 File: rg.png Graphic file (type png)
  <use rg.png>
-Package pdftex.def Info: rg.png used on input line 19.
+Package pdftex.def Info: rg.png used on input line 20.
 (pdftex.def)             Requested size: 29.87532pt x 19.91684pt.
 
 <rr.png, id=3, 120.45pt x 80.3pt>
 File: rr.png Graphic file (type png)
  <use rr.png>
-Package pdftex.def Info: rr.png used on input line 21.
+Package pdftex.def Info: rr.png used on input line 22.
 (pdftex.def)             Requested size: 29.87532pt x 19.91684pt.
 
 <rgb.png, id=4, 200.75pt x 80.3pt>
 File: rgb.png Graphic file (type png)
  <use rgb.png>
-Package pdftex.def Info: rgb.png used on input line 24.
+Package pdftex.def Info: rgb.png used on input line 25.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 
 <sgd-2b.png, id=5, 200.75pt x 80.3pt>
 File: sgd-2b.png Graphic file (type png)
  <use sgd-2b.png>
-Package pdftex.def Info: sgd-2b.png used on input line 27.
+Package pdftex.def Info: sgd-2b.png used on input line 28.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 File: rr.png Graphic file (type png)
  <use rr.png>
-Package pdftex.def Info: rr.png used on input line 29.
+Package pdftex.def Info: rr.png used on input line 30.
 (pdftex.def)             Requested size: 29.87532pt x 19.91684pt.
 File: rg.png Graphic file (type png)
 
 <use rg.png>
-Package pdftex.def Info: rg.png used on input line 29.
+Package pdftex.def Info: rg.png used on input line 30.
 (pdftex.def)             Requested size: 29.87532pt x 19.91684pt.
  <sgd-2a.png, id=6, 200.75pt x 80.3pt>
 File: sgd-2a.png Graphic file (type png)
  <use sgd-2a.png>
-Package pdftex.def Info: sgd-2a.png used on input line 30.
+Package pdftex.def Info: sgd-2a.png used on input line 31.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 File: sgd-2b.png Graphic file (type png)
 
 <use sgd-2b.png>
-Package pdftex.def Info: sgd-2b.png used on input line 30.
+Package pdftex.def Info: sgd-2b.png used on input line 31.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 
-Overfull \hbox (6.59618pt too wide) in paragraph at lines 28--33
+Overfull \hbox (6.59618pt too wide) in paragraph at lines 29--34
 \OT1/cmr/m/n/12 We see that $[] \OMS/cmsy/m/n/12 ^^@ []$ \OT1/cmr/m/n/12 gives 
 the trace of the co-vari-ance of gra-di-ents. More-over, $[] =
  []
@@ -371,304 +371,304 @@ the trace of the co-vari-ance of gra-di-ents. More-over, $[] =
 <rggb.png, id=7, 200.75pt x 80.3pt>
 File: rggb.png Graphic file (type png)
  <use rggb.png>
-Package pdftex.def Info: rggb.png used on input line 34.
+Package pdftex.def Info: rggb.png used on input line 35.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 
 <rggb-a.png, id=8, 281.05pt x 80.3pt>
 File: rggb-a.png Graphic file (type png)
  <use rggb-a.png>
-Package pdftex.def Info: rggb-a.png used on input line 34.
+Package pdftex.def Info: rggb-a.png used on input line 35.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 
 <rggb-b.png, id=9, 281.05pt x 80.3pt>
 File: rggb-b.png Graphic file (type png)
  <use rggb-b.png>
-Package pdftex.def Info: rggb-b.png used on input line 34.
+Package pdftex.def Info: rggb-b.png used on input line 35.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 
 <rrgb-a.png, id=10, 281.05pt x 80.3pt>
 File: rrgb-a.png Graphic file (type png)
  <use rrgb-a.png>
-Package pdftex.def Info: rrgb-a.png used on input line 34.
+Package pdftex.def Info: rrgb-a.png used on input line 35.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 
 <rrgb.png, id=11, 200.75pt x 80.3pt>
 File: rrgb.png Graphic file (type png)
  <use rrgb.png>
-Package pdftex.def Info: rrgb.png used on input line 34.
+Package pdftex.def Info: rrgb.png used on input line 35.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 
 
 Package amsmath Warning: Foreign command \atopwithdelims;
 (amsmath)                \frac or \genfrac should be used instead
-(amsmath)                 on input line 41.
+(amsmath)                 on input line 45.
 
 <sgd-0.png, id=12, 40.15pt x 80.3pt>
 File: sgd-0.png Graphic file (type png)
  <use sgd-0.png>
-Package pdftex.def Info: sgd-0.png used on input line 57.
+Package pdftex.def Info: sgd-0.png used on input line 61.
 (pdftex.def)             Requested size: 9.95844pt x 19.91684pt.
 
 <sgd-1.png, id=13, 120.45pt x 80.3pt>
 File: sgd-1.png Graphic file (type png)
  <use sgd-1.png>
-Package pdftex.def Info: sgd-1.png used on input line 57.
+Package pdftex.def Info: sgd-1.png used on input line 61.
 (pdftex.def)             Requested size: 29.87532pt x 19.91684pt.
 File: sgd-2a.png Graphic file (type png)
  <use sgd-2a.png>
-Package pdftex.def Info: sgd-2a.png used on input line 57.
+Package pdftex.def Info: sgd-2a.png used on input line 61.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 File: sgd-2b.png Graphic file (type png)
 
 <use sgd-2b.png>
-Package pdftex.def Info: sgd-2b.png used on input line 57.
+Package pdftex.def Info: sgd-2b.png used on input line 61.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
  <sgd-2c.png, id=14, 120.45pt x 80.3pt>
 File: sgd-2c.png Graphic file (type png)
  <use sgd-2c.png>
-Package pdftex.def Info: sgd-2c.png used on input line 57.
+Package pdftex.def Info: sgd-2c.png used on input line 61.
 (pdftex.def)             Requested size: 29.87532pt x 19.91684pt.
 
 <sgd-3a.png, id=15, 281.05pt x 80.3pt>
 File: sgd-3a.png Graphic file (type png)
  <use sgd-3a.png>
-Package pdftex.def Info: sgd-3a.png used on input line 57.
+Package pdftex.def Info: sgd-3a.png used on input line 61.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 
 <sgd-3b.png, id=16, 281.05pt x 80.3pt>
 File: sgd-3b.png Graphic file (type png)
  <use sgd-3b.png>
-Package pdftex.def Info: sgd-3b.png used on input line 57.
+Package pdftex.def Info: sgd-3b.png used on input line 61.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 
 <sgd-3c.png, id=17, 281.05pt x 80.3pt>
 File: sgd-3c.png Graphic file (type png)
  <use sgd-3c.png>
-Package pdftex.def Info: sgd-3c.png used on input line 57.
+Package pdftex.def Info: sgd-3c.png used on input line 61.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 
 <sgd-3d.png, id=18, 281.05pt x 80.3pt>
 File: sgd-3d.png Graphic file (type png)
  <use sgd-3d.png>
-Package pdftex.def Info: sgd-3d.png used on input line 57.
+Package pdftex.def Info: sgd-3d.png used on input line 61.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 
 <sgd-3e.png, id=19, 281.05pt x 80.3pt>
 File: sgd-3e.png Graphic file (type png)
  <use sgd-3e.png>
-Package pdftex.def Info: sgd-3e.png used on input line 57.
+Package pdftex.def Info: sgd-3e.png used on input line 61.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 
 <sgd-3f.png, id=20, 281.05pt x 80.3pt>
 File: sgd-3f.png Graphic file (type png)
  <use sgd-3f.png>
-Package pdftex.def Info: sgd-3f.png used on input line 57.
+Package pdftex.def Info: sgd-3f.png used on input line 61.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 
 <sgd-3g.png, id=21, 200.75pt x 80.3pt>
 File: sgd-3g.png Graphic file (type png)
  <use sgd-3g.png>
-Package pdftex.def Info: sgd-3g.png used on input line 57.
+Package pdftex.def Info: sgd-3g.png used on input line 61.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 
 <sgd-3i.png, id=22, 200.75pt x 80.3pt>
 File: sgd-3i.png Graphic file (type png)
  <use sgd-3i.png>
-Package pdftex.def Info: sgd-3i.png used on input line 57.
+Package pdftex.def Info: sgd-3i.png used on input line 61.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 
 <sgd-3h.png, id=23, 200.75pt x 80.3pt>
 File: sgd-3h.png Graphic file (type png)
  <use sgd-3h.png>
-Package pdftex.def Info: sgd-3h.png used on input line 57.
+Package pdftex.def Info: sgd-3h.png used on input line 61.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 
 <sgd-3k.png, id=24, 200.75pt x 80.3pt>
 File: sgd-3k.png Graphic file (type png)
  <use sgd-3k.png>
-Package pdftex.def Info: sgd-3k.png used on input line 57.
+Package pdftex.def Info: sgd-3k.png used on input line 61.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 
 <sgd-3j.png, id=25, 200.75pt x 80.3pt>
 File: sgd-3j.png Graphic file (type png)
  <use sgd-3j.png>
-Package pdftex.def Info: sgd-3j.png used on input line 57.
+Package pdftex.def Info: sgd-3j.png used on input line 61.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 
 <sgd-3l.png, id=26, 120.45pt x 80.3pt>
 File: sgd-3l.png Graphic file (type png)
  <use sgd-3l.png>
-Package pdftex.def Info: sgd-3l.png used on input line 57.
+Package pdftex.def Info: sgd-3l.png used on input line 61.
 (pdftex.def)             Requested size: 29.87532pt x 19.91684pt.
 File: sgd-0.png Graphic file (type png)
  <use sgd-0.png>
-Package pdftex.def Info: sgd-0.png used on input line 57.
+Package pdftex.def Info: sgd-0.png used on input line 61.
 (pdftex.def)             Requested size: 9.95844pt x 19.91684pt.
 File: sgd-1.png Graphic file (type png)
 
 <use sgd-1.png>
-Package pdftex.def Info: sgd-1.png used on input line 57.
+Package pdftex.def Info: sgd-1.png used on input line 61.
 (pdftex.def)             Requested size: 29.87532pt x 19.91684pt.
 File: sgd-2a.png Graphic file (type png)
  <use sgd-2a.png>
-Package pdftex.def Info: sgd-2a.png used on input line 57.
+Package pdftex.def Info: sgd-2a.png used on input line 61.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 File: sgd-2b.png Graphic file (type png)
  <use sgd-2b.png>
-Package pdftex.def Info: sgd-2b.png used on input line 57.
+Package pdftex.def Info: sgd-2b.png used on input line 61.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 File: sgd-2c.png Graphic file (type png)
  <use sgd-2c.png>
-Package pdftex.def Info: sgd-2c.png used on input line 57.
+Package pdftex.def Info: sgd-2c.png used on input line 61.
 (pdftex.def)             Requested size: 29.87532pt x 19.91684pt.
 File: sgd-3a.png Graphic file (type png)
 
 <use sgd-3a.png>
-Package pdftex.def Info: sgd-3a.png used on input line 57.
+Package pdftex.def Info: sgd-3a.png used on input line 61.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 File: sgd-3b.png Graphic file (type png)
  <use sgd-3b.png>
-Package pdftex.def Info: sgd-3b.png used on input line 57.
+Package pdftex.def Info: sgd-3b.png used on input line 61.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 File: sgd-3c.png Graphic file (type png)
  <use sgd-3c.png>
-Package pdftex.def Info: sgd-3c.png used on input line 57.
+Package pdftex.def Info: sgd-3c.png used on input line 61.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 File: sgd-3d.png Graphic file (type png)
  <use sgd-3d.png>
-Package pdftex.def Info: sgd-3d.png used on input line 57.
+Package pdftex.def Info: sgd-3d.png used on input line 61.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 File: sgd-3e.png Graphic file (type png)
 
 <use sgd-3e.png>
-Package pdftex.def Info: sgd-3e.png used on input line 57.
+Package pdftex.def Info: sgd-3e.png used on input line 61.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 File: sgd-3f.png Graphic file (type png)
  <use sgd-3f.png>
-Package pdftex.def Info: sgd-3f.png used on input line 57.
+Package pdftex.def Info: sgd-3f.png used on input line 61.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 File: sgd-3g.png Graphic file (type png)
  <use sgd-3g.png>
-Package pdftex.def Info: sgd-3g.png used on input line 57.
+Package pdftex.def Info: sgd-3g.png used on input line 61.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 File: sgd-3i.png Graphic file (type png)
  <use sgd-3i.png>
-Package pdftex.def Info: sgd-3i.png used on input line 57.
+Package pdftex.def Info: sgd-3i.png used on input line 61.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 File: sgd-3h.png Graphic file (type png)
 
 <use sgd-3h.png>
-Package pdftex.def Info: sgd-3h.png used on input line 57.
+Package pdftex.def Info: sgd-3h.png used on input line 61.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 File: sgd-3k.png Graphic file (type png)
  <use sgd-3k.png>
-Package pdftex.def Info: sgd-3k.png used on input line 57.
+Package pdftex.def Info: sgd-3k.png used on input line 61.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 File: sgd-3j.png Graphic file (type png)
  <use sgd-3j.png>
-Package pdftex.def Info: sgd-3j.png used on input line 57.
+Package pdftex.def Info: sgd-3j.png used on input line 61.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 File: sgd-3l.png Graphic file (type png)
  <use sgd-3l.png>
-Package pdftex.def Info: sgd-3l.png used on input line 57.
+Package pdftex.def Info: sgd-3l.png used on input line 61.
 (pdftex.def)             Requested size: 29.87532pt x 19.91684pt.
 
-Overfull \hbox (58.96635pt too wide) in paragraph at lines 57--57
+Overfull \hbox (58.96635pt too wide) in paragraph at lines 61--61
 [] 
  []
 
 File: sgd-0.png Graphic file (type png)
 <use sgd-0.png>
-Package pdftex.def Info: sgd-0.png used on input line 68.
+Package pdftex.def Info: sgd-0.png used on input line 72.
 (pdftex.def)             Requested size: 9.95844pt x 19.91684pt.
 File: sgd-1.png Graphic file (type png)
  <use sgd-1.png>
-Package pdftex.def Info: sgd-1.png used on input line 68.
+Package pdftex.def Info: sgd-1.png used on input line 72.
 (pdftex.def)             Requested size: 29.87532pt x 19.91684pt.
 File: sgd-2a.png Graphic file (type png)
  <use sgd-2a.png>
-Package pdftex.def Info: sgd-2a.png used on input line 68.
+Package pdftex.def Info: sgd-2a.png used on input line 72.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 File: sgd-2c.png Graphic file (type png)
  <use sgd-2c.png>
-Package pdftex.def Info: sgd-2c.png used on input line 68.
+Package pdftex.def Info: sgd-2c.png used on input line 72.
 (pdftex.def)             Requested size: 29.87532pt x 19.91684pt.
 File: sgd-3a.png Graphic file (type png)
 
 <use sgd-3a.png>
-Package pdftex.def Info: sgd-3a.png used on input line 68.
+Package pdftex.def Info: sgd-3a.png used on input line 72.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 File: sgd-3b.png Graphic file (type png)
  <use sgd-3b.png>
-Package pdftex.def Info: sgd-3b.png used on input line 68.
+Package pdftex.def Info: sgd-3b.png used on input line 72.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 File: sgd-3f.png Graphic file (type png)
  <use sgd-3f.png>
-Package pdftex.def Info: sgd-3f.png used on input line 68.
+Package pdftex.def Info: sgd-3f.png used on input line 72.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 File: sgd-3g.png Graphic file (type png)
  <use sgd-3g.png>
-Package pdftex.def Info: sgd-3g.png used on input line 68.
+Package pdftex.def Info: sgd-3g.png used on input line 72.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 File: sgd-3h.png Graphic file (type png)
 
 <use sgd-3h.png>
-Package pdftex.def Info: sgd-3h.png used on input line 68.
+Package pdftex.def Info: sgd-3h.png used on input line 72.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 File: sgd-3k.png Graphic file (type png)
  <use sgd-3k.png>
-Package pdftex.def Info: sgd-3k.png used on input line 68.
+Package pdftex.def Info: sgd-3k.png used on input line 72.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 File: sgd-3l.png Graphic file (type png)
  <use sgd-3l.png>
-Package pdftex.def Info: sgd-3l.png used on input line 68.
+Package pdftex.def Info: sgd-3l.png used on input line 72.
 (pdftex.def)             Requested size: 29.87532pt x 19.91684pt.
 File: sgd-0.png Graphic file (type png)
  <use sgd-0.png>
-Package pdftex.def Info: sgd-0.png used on input line 68.
+Package pdftex.def Info: sgd-0.png used on input line 72.
 (pdftex.def)             Requested size: 9.95844pt x 19.91684pt.
 File: sgd-1.png Graphic file (type png)
 
 <use sgd-1.png>
-Package pdftex.def Info: sgd-1.png used on input line 68.
+Package pdftex.def Info: sgd-1.png used on input line 72.
 (pdftex.def)             Requested size: 29.87532pt x 19.91684pt.
 File: sgd-2a.png Graphic file (type png)
  <use sgd-2a.png>
-Package pdftex.def Info: sgd-2a.png used on input line 68.
+Package pdftex.def Info: sgd-2a.png used on input line 72.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 File: sgd-2c.png Graphic file (type png)
  <use sgd-2c.png>
-Package pdftex.def Info: sgd-2c.png used on input line 68.
+Package pdftex.def Info: sgd-2c.png used on input line 72.
 (pdftex.def)             Requested size: 29.87532pt x 19.91684pt.
 File: sgd-3a.png Graphic file (type png)
  <use sgd-3a.png>
-Package pdftex.def Info: sgd-3a.png used on input line 68.
+Package pdftex.def Info: sgd-3a.png used on input line 72.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 File: sgd-3b.png Graphic file (type png)
 
 <use sgd-3b.png>
-Package pdftex.def Info: sgd-3b.png used on input line 68.
+Package pdftex.def Info: sgd-3b.png used on input line 72.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 File: sgd-3f.png Graphic file (type png)
  <use sgd-3f.png>
-Package pdftex.def Info: sgd-3f.png used on input line 68.
+Package pdftex.def Info: sgd-3f.png used on input line 72.
 (pdftex.def)             Requested size: 69.7091pt x 19.91684pt.
 File: sgd-3g.png Graphic file (type png)
  <use sgd-3g.png>
-Package pdftex.def Info: sgd-3g.png used on input line 68.
+Package pdftex.def Info: sgd-3g.png used on input line 72.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 File: sgd-3h.png Graphic file (type png)
  <use sgd-3h.png>
-Package pdftex.def Info: sgd-3h.png used on input line 68.
+Package pdftex.def Info: sgd-3h.png used on input line 72.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 File: sgd-3k.png Graphic file (type png)
 
 <use sgd-3k.png>
-Package pdftex.def Info: sgd-3k.png used on input line 68.
+Package pdftex.def Info: sgd-3k.png used on input line 72.
 (pdftex.def)             Requested size: 49.79222pt x 19.91684pt.
 File: sgd-3l.png Graphic file (type png)
  <use sgd-3l.png>
-Package pdftex.def Info: sgd-3l.png used on input line 68.
+Package pdftex.def Info: sgd-3l.png used on input line 72.
 (pdftex.def)             Requested size: 29.87532pt x 19.91684pt.
  [1
 
@@ -679,11 +679,11 @@ b.png> <./sgd-2b.png> <./sgd-2a.png> <./rggb.png> <./rggb-a.png> <./rggb-b.png>
 ng> <./sgd-3g.png> <./sgd-3i.png> <./sgd-3h.png> <./sgd-3k.png> <./sgd-3j.png> 
 <./sgd-3l.png>] [2] (./diagrams.aux) ) 
 Here is how much of TeX's memory you used:
- 4673 strings out of 494953
- 66527 string characters out of 6180976
- 142425 words of memory out of 5000000
- 7878 multiletter control sequences out of 15000+600000
- 8899 words of font info for 34 fonts, out of 8000000 for 9000
+ 4674 strings out of 494953
+ 66543 string characters out of 6180976
+ 143425 words of memory out of 5000000
+ 7879 multiletter control sequences out of 15000+600000
+ 9197 words of font info for 35 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  43i,17n,40p,284b,262s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/share/texlive/texmf-dist/fonts/type
@@ -696,7 +696,7 @@ usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/shar
 e/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texl
 ive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/share/texlive/tex
 mf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb>
-Output written on diagrams.pdf (2 pages, 133784 bytes).
+Output written on diagrams.pdf (2 pages, 135993 bytes).
 PDF statistics:
  102 PDF objects out of 1000 (max. 8388607)
  37 compressed objects within 1 object stream

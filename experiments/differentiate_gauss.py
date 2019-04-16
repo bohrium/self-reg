@@ -202,17 +202,20 @@ class Learner(object):
             here; instead, the difference lies in the size and correlations between batches we use to train the
             classifier, i.e. in the values assigned to `Data` and `TrueOutputs` at each gradient update step.
         '''
-        self.Losses = self.WeightsA - tf.square(self.WeightsA) + tf.square(self.WeightsB - tf.multiply(self.WeightsA, self.Data))
+        self.Losses = (
+                  tf.square(self.WeightsA - 1.0 - self.Data)
+                + 10.0 * (tf.square(self.WeightsB - self.Data) - 1.0)
+            )
         self.Loss = tf.reduce_mean(self.Losses)
         
-        self.Sentiment, self.Intensity, self.Uncertainty, self.Passion, self.Audacity, self.Peril, self.Serendipity = gradient_stats(self.Losses, self.Weights, batch_size)
+        self.Sentiment, self.Intensity, self.Uncertainty, self.Passion, self.Audacity, self.Peril, self.Serendipity  = gradient_stats(self.Losses, self.Weights, batch_size)
 
     def sample_init_weights(self): 
         ''' Sample weights (as numpy arrays) distributed according to Glorot-Bengio recommended length scales.  These
             weights are intended to be initializers. 
         '''
-        wa = 1.0 + 0.0 * np.random.randn(1)
-        ba = 1.0 + 0.0 * np.random.randn(1)
+        wa = 0.0 + 0.0 * np.random.randn(1)
+        ba = 0.0 + 0.0 * np.random.randn(1)
         return (wa, ba)
 
     def initialize_weights(self, wa, ba):
@@ -230,7 +233,6 @@ class Learner(object):
             feed_dict={ self.Data:ins_inputs }
         )
         return sentiment, intensity, uncertainty, passion, audacity, peril, serendipity
-
 
 
 ################################################################################

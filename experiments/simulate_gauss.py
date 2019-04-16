@@ -4,7 +4,7 @@
     descrp: Append summary of SGD and GD losses (on a toy learning task over a range of learning rates) to a file.
             Here, `SGD` means `batch size 1 without replacement`.  Our task in particular is to decrease this loss:
 
-                loss(data, (weightA, weightB)) = A + (B - A*data)**2 - A**2 
+                loss(data, (weightA, weightB)) = A + (B - A*data)**4 - 3*A**4 
 
             where data is distributed according to a univariate standard normal.  Observe that for any fixed A, setting  
             B=0 minimizes expected loss. In fact, this minimal expected loss decreases linearly as a function of A. 
@@ -12,7 +12,7 @@
             for 'good' A, the corresponding optimal B is hard to estimate.  Herein lies danger!
 
             To run, type:
-                python simulate_gauss.py 1000 10 0.00 0.05 12 32 experdata_gauss.txt 
+                python simulate_gauss.py 1000 10 0.00 0.005 12 32 experdata_gauss.txt 
             The                  1000   gives   a number of trials to perform per experimental condition;
             the                    10   gives   a training set size and number of gradient updates;
             the                  0.00   gives   a starting learning rate to sweep from;
@@ -113,7 +113,12 @@ class Learner(object):
         self.Inits = tf.concat([tf.reshape(init, [-1]) for init in [self.InitWeightsA, self.InitWeightsB]], axis=0)
         self.Initializer = tf.assign(self.Weights, self.Inits)
 
-        self.Losses = self.WeightsA - tf.square(self.WeightsA) + tf.square(self.WeightsB - tf.multiply(self.WeightsA, self.Data))
+        #self.Losses = self.WeightsA - 3*tf.square(tf.square(self.WeightsA)) + tf.square(tf.square(self.WeightsB - tf.multiply(self.WeightsA, self.Data)))
+        self.Losses = (
+                  tf.square(self.WeightsA - 1.0 - self.Data)
+                + 10.0 * (tf.square(self.WeightsB - self.Data) - 1.0)
+            )
+
 
     def create_trainer(self, precision=tf.float32):
         ''' Define the loss and corresponding gradient-based update.  The difference between gd and sgd is not codified
@@ -132,8 +137,8 @@ class Learner(object):
         ''' Sample weights (as numpy arrays) distributed according to Glorot-Bengio recommended length scales.  These
             weights are intended to be initializers. 
         '''
-        wa = 1.0 + 0.0 * np.random.randn(1)
-        ba = 1.0 + 0.0 * np.random.randn(1)
+        wa = 0.0 + 0.0 * np.random.randn(1)
+        ba = 0.0 + 0.0 * np.random.randn(1)
         return (wa, ba)
 
     def initialize_weights(self, wa, ba):

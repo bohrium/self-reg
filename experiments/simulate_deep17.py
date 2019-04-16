@@ -1,17 +1,17 @@
 ''' author: samtenka
-    change: 2019-03-04
+    change: 20125.03-04
     create: 2017-10-07
     descrp: Append summary of SGD and GD losses (on logistic regression on MNIST 0-vs-1 classification) to a file.
             Here, `SGD` means `batch size 1 without replacement`.  
             To run, type:
-                python simulate_shallow.py 1000 100 0.00 0.005 12 32 experdata_shallow.txt 
+                python simulate_deep17.py 1000 100 0.00 0.005 12 32 experdata_deep17.txt 
             The                    1000   gives   a number of trials to perform per experimental condition;
             the                     100   gives   a training set size and number of gradient updates;
             the                    0.00   gives   a starting learning rate to sweep from;
             the                    0.05   gives   a ending learning rate to sweep to;
             the                      12   gives   (one less than) the number of learning rates to sweep through;
             the                      32   gives   a desired floating point precision (32 or 64);
-            the   experdata_shallow.txt   gives   a filename of a log to which to append.
+            the      experdata_deep17.txt   gives   a filename of a log to which to append.
 '''
 
 import tensorflow as tf
@@ -41,7 +41,7 @@ class Dataset(object):
         through 9).  This class provides access to MNIST via in-sample and out-of-sample batches.  It allows us to
         sample from a training set potentially smaller than the the overall MNIST training set, and to sample with or
         without replacement.  Note that we DO NOT load labels as one-hot vectors.
-        Thus, `get_batch` and `get_all` each return two arrays of shape (???, 28*28) and (???), respectively.
+        Thus, `get_batch` and `get_all` each return two arrays of shape (???, 28) and (???), respectively.
     '''
     def __init__(self):
         ''' Read MNIST, with labels one-hot. '''
@@ -51,14 +51,14 @@ class Dataset(object):
         self.ins_labels = []
         for img, lbl in zip(mnist.train.images, mnist.train.labels):  
             if 2<=lbl: continue
-            self.ins_images.append(img)
+            self.ins_images.append(np.reshape(img, (28, 28))[:, 14])
             self.ins_labels.append(lbl)
 
         self.out_images = []
         self.out_labels = []
         for img, lbl in zip(mnist.test.images, mnist.test.labels):  
             if 2<=lbl: continue
-            self.out_images.append(img)
+            self.out_images.append(np.reshape(img, (28, 28))[:, 14])
             self.out_labels.append(lbl)                      
 
         total_length = len(self.ins_images)+len(self.out_images)
@@ -81,7 +81,7 @@ class Dataset(object):
         '''
         indices = np.random.choice(np.arange(len(self.ins_images)), size=sample_size, replace=False)
         self.sample_images = self.ins_images[indices]
-        self.sample_labels = self.ins_labels [indices]
+        self.sample_labels = self.ins_labels[indices]
         self.sample_size = sample_size
         self.index = 0
 
@@ -92,15 +92,13 @@ class Dataset(object):
         '''
         if split == 'out': 
             indices = np.random.choice(np.arange(len(self.out_images)), size=batch_size, replace=False)
-            sample_images = self.ins_images[indices]
-            sample_labels = self.ins_labels [indices]
-            return sample_images, sample_labels
+            return self.out_images[indices], self.out_labels[indices]
         if opt == 'gd': 
             return self.sample_images, self.sample_labels
         if with_replacement:
-            indices = np.random.choice(self.ins_size, size)
-            return self.ins_inputs[indices], self.ins_outputs[indices]
-        if self.index + batch_size > self.sample_size: 
+            indices = np.random.choice(self.sample_size, batch_size)
+            return self.sample_images[indices], self.sample_labels[indices]
+        if self.index + batch_size > self.sample_size: # shuffle 
             assert(self.index == self.sample_size)
             indices = np.random.shuffle(np.arange(self.sample_size))
             self.sample_images = self.sample_images[indices] 
@@ -131,22 +129,26 @@ class Learner(object):
 
     def create_model(self, precision=tf.float32):
         ''' Define the loss landscape as a function of weights and data. '''
-        self.Images = tf.placeholder(precision, shape=[None, 28*28])
+        self.Images = tf.placeholder(precision, shape=[None, 28])
         self.Labels= tf.placeholder(precision, shape=[None])
 
-        sizeA = 28*28*28
-        sizeB = 28*1
-        self.Weights = tf.get_variable('flattened', shape=[28*28*28+28*1], dtype=precision)
-        self.WeightsA = tf.reshape(self.Weights[:sizeA], [28*28, 28]) 
-        self.WeightsB = tf.reshape(self.Weights[sizeA:], [28, 1]) 
+        sizeA = 28*25
+        sizeB = 25*25
+        sizeC = 25*1
+        self.Weights = tf.get_variable('flattened', shape=[sizeA + sizeB + sizeC], dtype=precision)
+        self.WeightsA = tf.reshape(self.Weights[:sizeA], [28, 25])
+        self.WeightsB = tf.reshape(self.Weights[sizeA:sizeA+sizeB], [25, 25])
+        self.WeightsC = tf.reshape(self.Weights[sizeA+sizeB:], [25, 1])
 
-        self.InitWeightsA = tf.placeholder(precision, shape=[28*28*28])
-        self.InitWeightsB = tf.placeholder(precision, shape=[28*1])
-        self.Inits = tf.concat([tf.reshape(init, [-1]) for init in [self.InitWeightsA, self.InitWeightsB]], axis=0)
+        self.InitWeightsA = tf.placeholder(precision, shape=[28*25])
+        self.InitWeightsB = tf.placeholder(precision, shape=[25*25])
+        self.InitWeightsC = tf.placeholder(precision, shape=[25*1])
+        self.Inits = tf.concat([tf.reshape(init, [-1]) for init in [self.InitWeightsA, self.InitWeightsB, self.InitWeightsC]], axis=0)
         self.Initializer = tf.assign(self.Weights, self.Inits)
 
         self.Hidden = tf.math.tanh(tf.matmul(self.Images, self.WeightsA))
-        self.Logits = tf.reshape(tf.matmul(self.Hidden, self.WeightsB), [-1])
+        self.Hidden = tf.math.tanh(tf.matmul(self.Hidden, self.WeightsB))
+        self.Logits = tf.reshape(tf.matmul(self.Hidden, self.WeightsC), [-1])
         self.Losses = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.Labels, logits=self.Logits) 
 
     def create_trainer(self, precision=tf.float32):
@@ -166,16 +168,19 @@ class Learner(object):
         ''' Sample weights (as numpy arrays) distributed according to Glorot-Bengio recommended length scales.  These
             weights are intended to be initializers. 
         '''
-        wa = 0.0 + 0.0 * np.random.randn(28*28*28) / (28*28+28)**0.5 
-        wb = 0.0 + 0.0 * np.random.randn(28*1) / (28+1)**0.5 + (np.arange(0.0, 28.0)-14.0)/28.0
-        return (wa,wb)
+        wa = 1.0*(np.arange(0.0,28.0*25.0)/(28.0*25.0)-0.5) #/(28.0+25.0)**0.5
+        wb = 1.0*(np.arange(0.0,25.0*25.0)/(25.0*25.0)-0.5) #/(25.0+25.0)**0.5
+        wc = 1.0*(np.arange(0.0,25.0* 1.0)/(25.0* 1.0)-0.5) #/(25.0+ 1.0)**0.5
+        return (wa,wb,wc)
 
-    def initialize_weights(self, wa, wb):
+    def initialize_weights(self, wa, wb, wc):
         ''' Initialize weights as a RUNTIME OPERATION, not by creating new graph nodes. '''
         self.session.run(self.Initializer, feed_dict={
             self.InitWeightsA:wa,
             self.InitWeightsB:wb,
+            self.InitWeightsC:wc,
         })
+ 
 
     def run(self, dataset, ins_time, batch_size, learning_rate, opt='sgd'): 
         ''' Compute post-training metrics for given dataset and hyperparameters.  Return in-sample loss and
@@ -190,9 +195,8 @@ class Learner(object):
             }) 
         
         ins_inputs, ins_outputs = dataset.get_all('ins') 
-        #out_inputs, out_outputs = dataset.get_all('out') 
         out_inputs, out_outputs = dataset.get_batch(batch_size=batch_size, split='out')
-        ins_los = self.session.run(self.Loss, feed_dict={self.Images:ins_inputs,self.Labels:ins_outputs})
+        ins_los = self.session.run(self.Loss, feed_dict={self.Images:ins_inputs, self.Labels:ins_outputs})
         out_los = self.session.run(self.Loss, feed_dict={self.Images:out_inputs, self.Labels:out_outputs})
         return ins_los, out_los
 
