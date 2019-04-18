@@ -1,25 +1,17 @@
 ''' author: samtenka
-    change: 2019-02-20
+    change: 2019.03-04
     create: 2017-10-07
-    descrp: Append summary of SGD and GD losses (on a toy learning task over a range of learning rates) to a file.
-            Here, `SGD` means `batch size 1 without replacement`.  Our task in particular is to decrease this loss:
-
-                loss(data, (weightA, weightB)) = A + (B - A*data)**4 - 3*A**4 
-
-            where data is distributed according to a univariate standard normal.  Observe that for any fixed A, setting  
-            B=0 minimizes expected loss. In fact, this minimal expected loss decreases linearly as a function of A. 
-            However, as A travels away from 0, the dependence of loss on the specific data sample grows.  Intuitively,
-            for 'good' A, the corresponding optimal B is hard to estimate.  Herein lies danger!
-
+    descrp: Append summary of SGD and GD losses (on logistic regression on MNIST 0-vs-1 classification) to a file.
+            Here, `SGD` means `batch size 1 without replacement`.  
             To run, type:
-                python simulate_gauss.py 1000 10 0.00 0.005 12 32 experdata_gauss.txt 
-            The                  1000   gives   a number of trials to perform per experimental condition;
-            the                    10   gives   a training set size and number of gradient updates;
-            the                  0.00   gives   a starting learning rate to sweep from;
-            the                  0.05   gives   a ending learning rate to sweep to;
-            the                    12   gives   (one less than) the number of learning rates to sweep through;
-            the                    32   gives   a desired floating point precision (32 or 64);
-            the   experdata_gauss.txt   gives   a filename of a log to which to append.
+                python simulate_logis.py 1000 100 0.00 0.005 12 32 experdata_logis.txt 
+            The                    1000   gives   a number of trials to perform per experimental condition;
+            the                     100   gives   a training set size and number of gradient updates;
+            the                    0.00   gives   a starting learning rate to sweep from;
+            the                    0.05   gives   a ending learning rate to sweep to;
+            the                      12   gives   (one less than) the number of learning rates to sweep through;
+            the                      32   gives   a desired floating point precision (32 or 64);
+            the      experdata_logis.txt   gives   a filename of a log to which to append.
 '''
 
 import tensorflow as tf
@@ -42,49 +34,85 @@ FILE_NM   = sys.argv[7]
 #           0. DATASET BATCHES                                                 #
 ################################################################################
 
-class Dataset(object): 
-    ''' This class provides access to the aforementioned toy dataset via in-sample and out-of-sample batches.  It
-        allows us to sample a finite training set and from there and to sample with or without replacement.  Since our
-        learning task involves no labels, `get_batch` and `get_all` each return one array of shape (???, 1).
-    '''
-    def __init__(self, max_size=1000):
-        self.resample_ins(max_size)
+from tensorflow.examples.tutorials.mnist import input_data
 
-    def resample_ins(self, ins_size):
-        ''' Resample the finite training set. '''
-        self.ins_inputs = np.random.randn(ins_size, 2)
-        self.ins_size = ins_size
+class Dataset(object): 
+    ''' MNIST is a classic image-classification dataset containing 28x28 grayscale photographs of handwritten digits (0
+        through 9).  This class provides access to MNIST via in-sample and out-of-sample batches.  It allows us to
+        sample from a training set potentially smaller than the the overall MNIST training set, and to sample with or
+        without replacement.  Note that we DO NOT load labels as one-hot vectors.
+        Thus, `get_batch` and `get_all` each return two arrays of shape (???, 28) and (???), respectively.
+    '''
+    def __init__(self):
+        ''' Read MNIST, with labels one-hot. '''
+        mnist = input_data.read_data_sets('MNIST_data', one_hot=False)
+
+        self.ins_images = []
+        self.ins_labels = []
+        for img, lbl in zip(mnist.train.images, mnist.train.labels):  
+            if 2<=lbl: continue
+            self.ins_images.append(np.reshape(img, (28, 28))[:, 14])
+            self.ins_labels.append(lbl)
+
+        self.out_images = []
+        self.out_labels = []
+        for img, lbl in zip(mnist.test.images, mnist.test.labels):  
+            if 2<=lbl: continue
+            self.out_images.append(np.reshape(img, (28, 28))[:, 14])
+            self.out_labels.append(lbl)                      
+
+        total_length = len(self.ins_images)+len(self.out_images)
+        self.ins_images, self.out_images = ((self.ins_images + self.out_images)[:total_length//2],
+                                            (self.ins_images + self.out_images)[total_length//2:])
+        self.ins_labels, self.out_labels = ((self.ins_labels + self.out_labels)[:total_length//2],
+                                            (self.ins_labels + self.out_labels)[total_length//2:])   
+        print(total_length//2, total_length-total_length//2)
+
+        self.ins_images = np.array(self.ins_images)
+        self.ins_labels = np.array(self.ins_labels)
+        self.out_images = np.array(self.out_images)
+        self.out_labels = np.array(self.out_labels)
+
+        self.resample(len(self.ins_images))
+
+    def resample(self, sample_size):
+        ''' MNIST is a classic image-classification dataset.  Its images are 28x28 grayscale photographs of handwritten
+            digits (0 through 9).  Note that we load labels as one-hot vectors, making it easier to define the loss.
+        '''
+        indices = np.random.choice(np.arange(len(self.ins_images)), size=sample_size, replace=False)
+        self.sample_images = self.ins_images[indices]
+        self.sample_labels = self.ins_labels[indices]
+        self.sample_size = sample_size
         self.index = 0
 
     def get_batch(self, batch_size, split='ins', opt='sgd', with_replacement=False):
-        ''' Return batch, by default from training set.  In case the specified optimizer is 'sgd', then `batch_size`
+        ''' Returns batch, by default from training set.  In case the specified optimizer is 'sgd', then `batch_size`
             and `with_replacment` become salient parameters; if the optimizer is 'gd', then the returned batch is the
             same (and of size equal to the number of training points) each time. 
         '''
         if split == 'out': 
-            out_inputs = np.random.randn(max_size, 2)
-            return out_inputs 
+            indices = np.random.choice(np.arange(len(self.out_images)), size=batch_size, replace=False)
+            return self.out_images[indices], self.out_labels[indices]
         if opt == 'gd': 
-            return self.ins_inputs
+            return self.sample_images, self.sample_labels
         if with_replacement:
-            indices = np.random.choice(self.ins_size, size)
-            return self.ins_inputs[indices]
-        if self.index + batch_size > self.ins_size: 
-            assert(self.index == self.ins_size)
-            indices = np.random.shuffle(np.arange(self.ins_size))
-            self.ins_inputs = self.ins_inputs[indices] 
+            indices = np.random.choice(self.sample_size, batch_size)
+            return self.sample_images[indices], self.sample_labels[indices]
+        if self.index + batch_size > self.sample_size: # shuffle 
+            assert(self.index == self.sample_size)
+            indices = np.random.shuffle(np.arange(self.sample_size))
+            self.sample_images = self.sample_images[indices] 
+            self.sample_labels = self.sample_outputs[indices] 
             self.index = 0
-        rtrn = self.ins_inputs[self.index:self.index+batch_size]
+        rtrn = self.sample_images[self.index:self.index+batch_size], self.sample_labels[self.index:self.index+batch_size]
         self.index += batch_size
         return rtrn
 
-    def get_all(self, split='ins', max_size=1000):
-        ''' Return whole in-sample or out-of-sample points.  Good for evaluating train and test scores. ''' 
+    def get_all(self, split='ins'):
+        ''' Returns whole in-sample or out-of-sample points.  Good for evaluating train and test scores. ''' 
         if split == 'out':
-            out_inputs = np.random.randn(max_size, 2)
-            return out_inputs
-        return self.ins_inputs
-
+            return self.out_images, self.out_labels
+        return self.sample_images, self.sample_labels
 
 
 ################################################################################
@@ -101,22 +129,27 @@ class Learner(object):
 
     def create_model(self, precision=tf.float32):
         ''' Define the loss landscape as a function of weights and data. '''
-        self.Data = tf.placeholder(precision, shape=[None, 2])
+        self.Images = tf.placeholder(precision, shape=[None, 28])
+        self.Labels= tf.placeholder(precision, shape=[None])
 
-        self.Weights = tf.get_variable('flattened', shape=[1+1], dtype=precision)
+        sizeA = 28*28
+        sizeB = 28*28
+        sizeC = 28*1
+        self.Weights = tf.get_variable('flattened', shape=[sizeA + sizeB + sizeC], dtype=precision)
+        self.WeightsA = tf.reshape(self.Weights[:sizeA], [28, 28])
+        self.WeightsB = tf.reshape(self.Weights[sizeA:sizeA+sizeB], [28, 28])
+        self.WeightsC = tf.reshape(self.Weights[sizeA+sizeB:], [28, 1])
 
-        self.WeightsA = self.Weights[0]
-        self.WeightsB = self.Weights[1]
-
-        self.InitWeightsA = tf.placeholder(precision, shape=[1])
-        self.InitWeightsB = tf.placeholder(precision, shape=[1])
-        self.Inits = tf.concat([tf.reshape(init, [-1]) for init in [self.InitWeightsA, self.InitWeightsB]], axis=0)
+        self.InitWeightsA = tf.placeholder(precision, shape=[28*28])
+        self.InitWeightsB = tf.placeholder(precision, shape=[28*28])
+        self.InitWeightsC = tf.placeholder(precision, shape=[28*1])
+        self.Inits = tf.concat([tf.reshape(init, [-1]) for init in [self.InitWeightsA, self.InitWeightsB, self.InitWeightsC]], axis=0)
         self.Initializer = tf.assign(self.Weights, self.Inits)
 
-        self.Losses = (
-                tf.square(self.WeightsA + self.Data[:, 0:1] * (self.WeightsB-1.0) - self.Data[:, 1:2])
-        )
-
+        #self.Hidden = tf.math.tanh(tf.matmul(self.Images, self.WeightsA))
+        #self.Hidden = tf.math.tanh(tf.matmul(self.Hidden, self.WeightsB))
+        self.Logits = tf.reshape(tf.matmul(self.Images, self.WeightsC), [-1])
+        self.Losses = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.Labels, logits=self.Logits) 
 
     def create_trainer(self, precision=tf.float32):
         ''' Define the loss and corresponding gradient-based update.  The difference between gd and sgd is not codified
@@ -135,32 +168,36 @@ class Learner(object):
         ''' Sample weights (as numpy arrays) distributed according to Glorot-Bengio recommended length scales.  These
             weights are intended to be initializers. 
         '''
-        wa = 0.0 + 0.0 * np.random.randn(1)
-        ba = 0.0 + 0.0 * np.random.randn(1)
-        return (wa, ba)
+        wa = 1.0*(np.arange(0.0,28.0*28.0)/(28.0*28.0)-0.5) #/(28.0+28.0)**0.5
+        wb = 1.0*(np.arange(0.0,28.0*28.0)/(28.0*28.0)-0.5) #/(28.0+28.0)**0.5
+        wc = 0.0*(np.arange(0.0,28.0* 1.0)/(28.0* 1.0)-0.5) #/(28.0+ 1.0)**0.5
+        return (wa,wb,wc)
 
-    def initialize_weights(self, wa, ba):
+    def initialize_weights(self, wa, wb, wc):
         ''' Initialize weights as a RUNTIME OPERATION, not by creating new graph nodes. '''
         self.session.run(self.Initializer, feed_dict={
             self.InitWeightsA:wa,
-            self.InitWeightsB:ba,
+            self.InitWeightsB:wb,
+            self.InitWeightsC:wc,
         })
+ 
 
     def run(self, dataset, ins_time, batch_size, learning_rate, opt='sgd'): 
         ''' Compute post-training metrics for given dataset and hyperparameters.  Return in-sample loss and
             out-of-sample loss --- in that order.  This learning task has no auxilliary metrics such as accuracy. 
         '''
         for t in range(ins_time):
-            batch_inputs = dataset.get_batch(batch_size=batch_size, split='ins', opt=opt) 
+            batch_inputs, batch_outputs = dataset.get_batch(batch_size=batch_size, split='ins', opt=opt) 
             self.session.run([self.Update], feed_dict={
-                self.Data:batch_inputs,
+                self.Images:batch_inputs,
+                self.Labels:batch_outputs,
                 self.LearningRate:learning_rate
             }) 
         
-        ins_inputs = dataset.get_all('ins') 
-        out_inputs = dataset.get_all('out') 
-        ins_los = self.session.run(self.Loss, feed_dict={self.Data:ins_inputs})
-        out_los = self.session.run(self.Loss, feed_dict={self.Data:out_inputs})
+        ins_inputs, ins_outputs = dataset.get_all('ins') 
+        out_inputs, out_outputs = dataset.get_batch(batch_size=batch_size, split='out')
+        ins_los = self.session.run(self.Loss, feed_dict={self.Images:ins_inputs, self.Labels:ins_outputs})
+        out_los = self.session.run(self.Loss, feed_dict={self.Images:out_inputs, self.Labels:out_outputs})
         return ins_los, out_los
 
 
@@ -206,7 +243,7 @@ class Logger(object):
         with open(file_nm, 'a') as f: 
             for key in self.scores:  
                 stats = self.get_stats(key)
-                f.write('%s:\t%.9f\t%.9f\t%.9f\t%.9f' % ((key_renderer(*key),)+stats)) 
+                f.write('%s:\t%.10f\t%.10f\t%.10f\t%.10f' % ((key_renderer(*key),)+stats)) 
                 f.write('\n')
 
 
@@ -227,7 +264,7 @@ def run_experiment(nb_trials, ins_size, ins_time, batch_size, learning_rates):
         for learning_rate in learning_rates:
             print('LR =', learning_rate)
             for h in tqdm(range(nb_trials)):
-                dataset.resample_ins(ins_size)
+                dataset.resample(ins_size)
                 init_weights = learner.sample_init_weights() 
                 for opt in ('gd', 'sgd'): 
                     learner.initialize_weights(*init_weights)
@@ -239,7 +276,7 @@ def run_experiment(nb_trials, ins_size, ins_time, batch_size, learning_rates):
 
     logger.write_summary(FILE_NM,
         key_renderer=lambda nb_trials, ins_size, ins_time, batch_size, learning_rate, opt, metric:
-            'NB_TRIALS=%d\tINS_SIZE=%d\tINS_TIME=%d\tBATCH_SIZE=%d\tLEARNING_RATE=%f\tOPT=%s\tMETRIC=%s' %
+            'NB_TRIALS=%d\tINS_SIZE=%d\tINS_TIME=%d\tBATCH_SIZE=%d\tLEARNING_RATE=%.10f\tOPT=%s\tMETRIC=%s' %
             (nb_trials, ins_size, ins_time, batch_size, learning_rate, opt, metric) 
     )
 

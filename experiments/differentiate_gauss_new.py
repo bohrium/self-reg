@@ -20,6 +20,7 @@ NB_TRIALS = int(sys.argv[1])
 INS_SIZE  = int(sys.argv[2]) 
 PRECISION = {32:tf.float32, 64:tf.float64}[int(sys.argv[3])]
 FILE_NM   = sys.argv[4]
+NB_STATS = 19
 
 
 ################################################################################
@@ -27,29 +28,16 @@ FILE_NM   = sys.argv[4]
 ################################################################################
 
     #--------------------------------------------------------------------------#
-    #                0.0 define unbiased estimator helper function             #
+    #                0.0 define tf helper functions                            #
     #--------------------------------------------------------------------------#
 
-def second_order_stats(x, y, BATCH_SIZE): 
-    ''' Return unbiased estimates of
-            PRODUCT_MEAN =  trace({x}{y}),
-            COVARIANCE   =  trace({xy}-{x}{y}), and
-            AVG_PRODUCT  =  trace({xy})
-            PRODUCT_AVG  =  trace({x}{y})
-        for given tensors x and y of shape (nb samples)-by-(dim)
-    '''
-    BESSEL_FACTOR = float(BATCH_SIZE) / (BATCH_SIZE-1)
+def tfdot(s, t):
+    return tf.reduce_sum(tf.multiply(s, t), axis=1)
 
-    avg_x = tf.reduce_mean(x, axis=0)
-    avg_y = tf.reduce_mean(y, axis=0) if x is not y else avg_x
-
-    avg_product = tf.reduce_sum(tf.reduce_mean(tf.multiply(x, y), axis=0))
-    product_avg = tf.reduce_sum(tf.multiply(avg_x, avg_y))
-    
-    covariance = BESSEL_FACTOR * (avg_product - product_avg)
-    product_mean = avg_product - covariance
-
-    return product_mean, covariance, avg_product, product_avg
+def tfgrad(y, x, batch_size, block, stop_gradients=[]):
+    start =  block    * (batch_size//4)
+    end   = (block+1) * (batch_size//4)
+    return tf.transpose(tf.convert_to_tensor(tf.gradients(y, x, stop_gradients=stop_gradients)))[start:end, :, 0]
 
 def gradient_stats(Losses, Weights, BATCH_SIZE): 
     ''' Given loss batch and weight tensors, return unbiased estimates of
@@ -58,74 +46,74 @@ def gradient_stats(Losses, Weights, BATCH_SIZE):
         Assumes batch size is divisible by 4.
     '''
 
-    assert(BATCH_SIZE % 4 == 0)
-
     #--------------------------------------------------------------------------#
-    #                0.1 compute SENTIMENT                                     #
+    #                0.1 compute starting tensors                              #
     #--------------------------------------------------------------------------#
     
     # Use of `Linker` forces tf.gradient to return an actual 0 instead of `None` when there is no dependency:
     Linker = 0.0*tf.reduce_sum(Weights)
     LinkedLosses = Losses + Linker
-    AvgLoss = tf.reduce_mean(LinkedLosses)
     
+    assert(BATCH_SIZE % 4 == 0)
+    
+    Gradients = tf.transpose(tf.convert_to_tensor(tf.gradients(LinkedLosses, Weights)))[:, :, 0]
+    Gradients0  = Gradients[:BATCH_SIZE//2, :] 
+    Gradients1  = Gradients[BATCH_SIZE//2:, :] 
+    Gradients00 = Gradients0[:BATCH_SIZE//4, :] 
+    Gradients01 = Gradients0[BATCH_SIZE//4:, :] 
+    Gradients10 = Gradients1[:BATCH_SIZE//4, :] 
+    Gradients11 = Gradients1[BATCH_SIZE//4:, :] 
+
     #--------------------------------------------------------------------------#
-    #                0.2 compute INTENSITY and UNCERTAINTY                     #
+    #                0.2 combine tensors up to 3rd order                       #
     #--------------------------------------------------------------------------#
-    
-    Gradients = tf.transpose(tf.convert_to_tensor(tf.gradients(LinkedLosses, Weights)))
-    Gradients_0  = Gradients[:BATCH_SIZE//2, :] 
-    Gradients_1  = Gradients[BATCH_SIZE//2:, :] 
-    Gradients_00 = Gradients0[:BATCH_SIZE//4, :] 
-    Gradients_01 = Gradients0[BATCH_SIZE//4:, :] 
-    Gradients_10 = Gradients1[:BATCH_SIZE//4, :] 
-    Gradients_11 = Gradients1[BATCH_SIZE//4:, :] 
 
-    Weights_0  = Weights[:BATCH_SIZE//2, :] 
-    Weights_1  = Weights[BATCH_SIZE//2:, :] 
-    Weights_00 = Weights0[:BATCH_SIZE//4, :] 
-    Weights_01 = Weights0[BATCH_SIZE//4:, :] 
-    Weights_10 = Weights1[:BATCH_SIZE//4, :] 
-    Weights_11 = Weights1[BATCH_SIZE//4:, :] 
+    A_As    = tfdot(Gradients00, Gradients01)
+    AAs     = tfdot(Gradients00, Gradients00)
 
-    A_A     = tf.reduce_mean(tf.reduce_sum(tf.multiply(Gradients_00, Gradients_01), axis=1), axis=0)
-    AA      = tf.reduce_mean(tf.reduce_sum(tf.multiply(Gradients_00, Gradients_00), axis=1), axis=0)
+    A_Abs   =       tfgrad(A_As, Weights, BATCH_SIZE, 1)
+    AAbs    = 0.5 * tfgrad(AAs , Weights, BATCH_SIZE, 0)
 
-    A_Ab    =       tf.transpose(tf.convert_to_tensor(tf.gradients(A_A, Weights_01)))
-    AAb     = 0.5 * tf.transpose(tf.convert_to_tensor(tf.gradients(AA , Weights_00)))
+    A_Ab_Bs = tfdot(A_Abs, Gradients10)
+    AAb_Bs  = tfdot(AAbs,  Gradients10)
+    AB_Abs  = tfdot(A_Abs, Gradients00)
+    AAbBs   = tfdot(AAbs,  Gradients00)
 
-    A_Ab_B  = tf.reduce_mean(tf.reduce_sum(tf.multiply(A_Ab, Gradients10), axis=1), axis=0)
-    AAb_B   = tf.reduce_mean(tf.reduce_sum(tf.multiply(AAb,  Gradients10), axis=1), axis=0)
-    AB_Ab   = tf.reduce_mean(tf.reduce_sum(tf.multiply(A_Ab, Gradients00), axis=1), axis=0)
-    AAbB    = tf.reduce_mean(tf.reduce_sum(tf.multiply(AAb,  Gradients00), axis=1), axis=0)
+    A_Ab_Bcs=       tfgrad(A_Ab_Bs, Weights, BATCH_SIZE, 2)
+    A_Abc_Bs=       tfgrad(A_Ab_Bs, Weights, BATCH_SIZE, 1)
+    AAb_Bcs =       tfgrad(AAb_Bs , Weights, BATCH_SIZE, 1)
+    ABc_Abs = 0.5 * tfgrad(AB_Abs , Weights, BATCH_SIZE, 0)
+    AB_Abcs =       tfgrad(AB_Abs , Weights, BATCH_SIZE, 1)
 
-    A_Ab_Bc =       tf.transpose(tf.convert_to_tensor(tf.gradients(A_Ab_B, Weights_10)))
-    A_Abc_B =       tf.transpose(tf.convert_to_tensor(tf.gradients(A_Ab_B, Weights_01)))
-    AAb_Bc  =       tf.transpose(tf.convert_to_tensor(tf.gradients(AAb_B , Weights_01)))
-    ABc_Ab  = 0.5 * tf.transpose(tf.convert_to_tensor(tf.gradients(AB_Ab , Weights_00)))
-    AB_Abc  =       tf.transpose(tf.convert_to_tensor(tf.gradients(AB_ab , Weights_01)))
+    A_Ab_Bc_Cs  = tfdot(A_Ab_Bcs, Gradients11)
+    AAb_Bc_Cs   = tfdot(AAb_Bcs , Gradients10)
+    ABc_Ab_Cs   = tfdot(ABc_Abs , Gradients10)
+    AC_Ab_Bcs   = tfdot(A_Ab_Bcs, Gradients00)
 
-    A_Ab_Bc_C   = tf.reduce_mean(tf.reduce_sum(tf.multiply(A_Ab_Bc, Gradients11), axis=1), axis=0)
-    AAb_Bc_C    = tf.reduce_mean(tf.reduce_sum(tf.multiply(AAb_Bc , Gradients10), axis=1), axis=0)
-    ABc_Ab_C    = tf.reduce_mean(tf.reduce_sum(tf.multiply(ABc_Ab , Gradients10), axis=1), axis=0)
-    AC_Ab_Bc    = tf.reduce_mean(tf.reduce_sum(tf.multiply(A_Ab_Bc, Gradients00), axis=1), axis=0)
-    #A_AbBc_C    =
-    #AAbBc_C     =
-    AAbC_Bc     = tf.reduce_mean(tf.reduce_sum(tf.multiply(AAb_Bc , Gradients00), axis=1), axis=0)
+    A_AbBcs= tfgrad(tfdot(A_Abs, Gradients01), Weights, BATCH_SIZE, 1, stop_gradients=[A_Abs])
+    AAbBcs = tfgrad(tfdot(AAbs , Gradients00), Weights, BATCH_SIZE, 0, stop_gradients=[A_Abs])
 
-    A_Abc_B_C   = tf.reduce_mean(tf.reduce_sum(tf.multiply(A_Abc_B , Gradients11), axis=1), axis=0)
-    AB_Abc_C    = tf.reduce_mean(tf.reduce_sum(tf.multiply(AB_Abc  , Gradients10), axis=1), axis=0)
-    A_AbcC_B    = tf.reduce_mean(tf.reduce_sum(tf.multiply(A_Abc_B , Gradients01), axis=1), axis=0)
-    ABC_Abc     = tf.reduce_mean(tf.reduce_sum(tf.multiply(AB_Abc  , Gradients00), axis=1), axis=0)
-    #A_AbcBC     = 
-    
-    return (
-            AvgLoss, 
-            A_A, AA,
-            A_Ab_B, AAb_B, AB_Ab, AAbB,
-            A_Ab_Bc_C, AAb_Bc_C, ABc_Ab_C, AC_Ab_Bc, A_AbBc_C, AAbBc_C, AAbC_Bc,
-            A_Abc_B_C, AB_Abc_C, A_AbcC_B, ABC_Abc, A_AbcBC
-            )
+    A_AbBc_Cs   = tfdot(A_AbBcs , Gradients10)
+    AAbBc_Cs    = tfdot(AAbBcs  , Gradients01)  
+    AAbC_Bcs    = tfdot(AAb_Bcs , Gradients00)
+
+    A_Abc_B_Cs  = tfdot(A_Abc_Bs, Gradients11)
+    AB_Abc_Cs   = tfdot(AB_Abcs , Gradients10)
+    A_AbcC_Bs   = tfdot(A_Abc_Bs, Gradients01)
+    ABC_Abcs    = tfdot(AB_Abcs , Gradients00)
+    A_AbcBCs    = tfdot(A_AbBcs , Gradients01)
+
+    #--------------------------------------------------------------------------#
+    #                0.3 return unbiased estimates                             #
+    #--------------------------------------------------------------------------#
+
+    return [tf.reduce_mean(x) for x in (
+        Losses, 
+        A_As, AAs,
+        A_Ab_Bs, AAb_Bs, AB_Abs, AAbBs,
+        A_Ab_Bc_Cs, AAb_Bc_Cs, ABc_Ab_Cs, AC_Ab_Bcs, A_AbBc_Cs, AAbBc_Cs, AAbC_Bcs,
+        A_Abc_B_Cs, AB_Abc_Cs, A_AbcC_Bs, ABC_Abcs, A_AbcBCs
+    )]
 
 
 ################################################################################
@@ -142,7 +130,7 @@ class Dataset(object):
 
     def resample_ins(self, ins_size):
         ''' Resample the finite training set. '''
-        self.ins_inputs = np.random.randn(ins_size, 1)
+        self.ins_inputs = np.random.randn(ins_size, 2)
         self.ins_size = ins_size
         self.index = 0
 
@@ -152,7 +140,7 @@ class Dataset(object):
             same (and of size equal to the number of training points) each time. 
         '''
         if split == 'out': 
-            out_inputs = np.random.randn(max_size, 1)
+            out_inputs = np.random.randn(max_size, 2)
             return out_inputs 
         if opt == 'gd': 
             return self.ins_inputs
@@ -171,7 +159,7 @@ class Dataset(object):
     def get_all(self, split='ins', max_size=1000):
         ''' Return whole in-sample or out-of-sample points.  Good for evaluating train and test scores. ''' 
         if split == 'out':
-            out_inputs = np.random.randn(max_size, 1)
+            out_inputs = np.random.randn(max_size, 2)
             return out_inputs
         return self.ins_inputs
 
@@ -192,7 +180,7 @@ class Learner(object):
 
     def create_model(self, batch_size, precision=tf.float32):
         ''' Define the loss landscape as a function of weights and data. '''
-        self.Data = tf.placeholder(precision, shape=[batch_size, 1])
+        self.Data = tf.placeholder(precision, shape=[batch_size, 2])
 
         self.Weights = tf.get_variable('flattened', shape=[1+1, batch_size], dtype=precision)
 
@@ -212,12 +200,10 @@ class Learner(object):
             classifier, i.e. in the values assigned to `Data` and `TrueOutputs` at each gradient update step.
         '''
         self.Losses = (
-                  tf.square(self.WeightsA - 1.0 - self.Data)
-                + 10.0 * (tf.square(self.WeightsB - self.Data) - 1.0)
+                tf.square(self.WeightsA + self.Data[:, 0:1] * (self.WeightsB-1.0) - self.Data[:, 1:2])
             )
-        self.Loss = tf.reduce_mean(self.Losses)
         
-        self.Sentiment, self.Intensity, self.Uncertainty, self.Passion, self.Audacity, self.Peril, self.Serendipity  = gradient_stats(self.Losses, self.Weights, batch_size)
+        self.stat_tensors = gradient_stats(self.Losses, self.Weights, batch_size)
 
     def sample_init_weights(self): 
         ''' Sample weights (as numpy arrays) distributed according to Glorot-Bengio recommended length scales.  These
@@ -237,11 +223,8 @@ class Learner(object):
     def run(self, dataset): 
         ''' Compute gradient statistics on the given training set. '''
         ins_inputs = dataset.get_all('ins') 
-        sentiment, intensity, uncertainty, passion, audacity, peril, serendipity = self.session.run(
-            [self.Sentiment, self.Intensity, self.Uncertainty, self.Passion, self.Audacity, self.Peril, self.Serendipity],
-            feed_dict={ self.Data:ins_inputs }
-        )
-        return sentiment, intensity, uncertainty, passion, audacity, peril, serendipity
+        stats = self.session.run(self.stat_tensors, feed_dict={ self.Data:ins_inputs })
+        return stats
 
 
 ################################################################################
@@ -255,21 +238,24 @@ def run_experiment(nb_trials, ins_size):
     dataset = Dataset()
     learner = Learner(ins_size)
 
-    sentiment, intensity, uncertainty, passion, audacity, peril, serendipity = [], [], [], [], [], [], []
-    statlists = [sentiment, intensity, uncertainty, passion, audacity, peril, serendipity]
+    stats_array = np.zeros((NB_STATS, nb_trials), dtype=np.float32) 
     for h in tqdm(range(nb_trials)):
         dataset.resample_ins(ins_size)
         init_weights = learner.sample_init_weights() 
         learner.initialize_weights(*init_weights)
-        for s, slist in zip(learner.run(dataset), statlists): 
-            slist.append(s)
-    print('MEAN: sent %.8f, intense %.8f, uncert %.8f, pass %.8f, aud %.8f, peril %.8f, serendipity %.8f' % tuple(np.mean(sl) for sl in statlists))
-    print('SDEV: sent %.8f, intense %.8f, uncert %.8f, pass %.8f, aud %.8f, peril %.8f, serendipity %.8f' % tuple(np.std(sl) for sl in statlists))
 
+        stats_array[:,h] = learner.run(dataset)
+
+    string_format = '\n'.join('%s %%16.8f\t %%16.8f' % name.ljust(10) for name in (
+        'Loss, A_A, AA, A_Ab_B, AAb_B, AB_Ab, AAbB, A_Ab_Bc_C, AAb_Bc_C, ABc_Ab_C, AC_Ab_Bc, A_AbBc_C, AAbBc_C, AAbC_Bc, A_Abc_B_C, AB_Abc_C, A_AbcC_B, ABC_Abc, A_AbcBC'.split(', ')
+    ))
+
+    report = (string_format % tuple(proc(sl) for sl in stats_array for proc in (np.mean, np.std)))
+
+    print(report)
     with open(FILE_NM, 'w') as f:
-        f.write('%d TRIALS, %d SAMPLES\n' % (nb_trials, ins_size))
-        f.write('MEAN: sent %.8f, intense %.8f, uncert %.8f, pass %.8f, aud %.8f, peril %.8f, serendipity %.8f\n' % tuple(np.mean(sl) for sl in statlists))
-        f.write('SDEV: sent %.8f, intense %.8f, uncert %.8f, pass %.8f, aud %.8f, peril %.8f, serendipity %.8f\n' % tuple(np.std(sl) for sl in statlists))
+        f.write('%d TRIALS, %d SAMPLES PER TRIAL\n' % (nb_trials, ins_size))
+        f.write(report)
 
 if __name__=='__main__':
     run_experiment(nb_trials=NB_TRIALS, ins_size=INS_SIZE)
