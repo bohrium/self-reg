@@ -20,11 +20,11 @@ import sys
 N = T = 10
 
 modes = {
-    'OUT-GD':  {'ylims':(  0.0 , 2.0  ), 'title':'GD Test Loss'}, 
-    'OUT-SGD': {'ylims':(  0.0 , 2.0  ), 'title':'SGD Test Loss'},
-    'OUT-DIFF':{'ylims':( -1.25, 1.25 ), 'title':'Test-Time Benefit of Stochasticity'},
-    'GEN-GD':  {'ylims':(-1.   ,15.   ), 'title':'GD Generalization Gap'},
-    'GEN-SGD': {'ylims':(-1.   ,15.   ), 'title':'SGD Generalization Gap'},
+    'OUT-GD':  {'ylims':(  0.00, 2.00 ), 'title':'GD Test Loss'}, 
+    'OUT-SGD': {'ylims':(  0.00, 2.00 ), 'title':'SGD Test Loss'},
+    'OUT-DIFF':{'ylims':( -0.15, 0.15 ), 'title':'Test-Time Benefit of Stochasticity'},
+    'GEN-GD':  {'ylims':( -0.05, 0.15 ), 'title':'GD Generalization Gap'},
+    'GEN-SGD': {'ylims':( -0.05, 0.15 ), 'title':'SGD Generalization Gap'},
 }
 
 assert(len(sys.argv) in [4, 6])
@@ -52,7 +52,7 @@ with open(GRADSTATS_FILENM) as f:
     MTRIALS, _ = tuple(float(x) for x in lines[0].split() if x.isnumeric())
     gradstat_means = {}
     gradstat_sdevs = {}
-    for ln in lines[1:]:
+    for ln in filter(None, lines[1:]):
         name, mean, sdev = ln.split() 
         gradstat_means[name] = float(mean)
         gradstat_sdevs[name] = float(sdev) * 1.96 / MTRIALS**0.5
@@ -128,6 +128,26 @@ def choose(T, n):
         T -= 1
     return p
 
+## GEN-SGD:
+#E_lin = X*(
+#    choose(T, 1) * evaluate('(1.0/N) * ((AA) - (A_A))')
+#)
+#E_qua = E_lin - X*X*(
+#    choose(T, 2) * evaluate('(2.0/N)*((AAb_B) - (A_Ab_B)) + (1.0/N)*((AB_Ab)-(A_Ab_B))') +
+#    choose(T, 1) * evaluate('(1.0/(2*N))*((AAbB) - (AB_Ab))')
+#)
+#E_cub=None
+#
+#S_lin = X*(
+#    choose(T, 1) * svaluate('(1.0/N) * ((AA) + (A_A))')
+#)
+#S_qua = S_lin + X*X*(
+#    choose(T, 2) * svaluate('(2.0/N)*((AAb_B) + (A_Ab_B)) + (1.0/N)*((AB_Ab) + (A_Ab_B))') +
+#    choose(T, 1) * svaluate('(1.0/(2*N))*((AAbB) + (AB_Ab))')
+#)
+#S_cub=None
+
+##OUT-SGD:
 E_lin = evaluate('(Loss) - X*T*(A_A)')
 E_qua = E_lin + X*X*(
     choose(T, 2) * evaluate('(3.0/2)*(A_Ab_B)') +
@@ -137,6 +157,17 @@ E_cub = E_qua - X*X*X*(
     choose(T, 3) * evaluate('(5.0/2)*(A_Ab_Bc_C) + (2.0/3)*(A_Abc_B_C)') +
     choose(T, 2) * evaluate('(ABc_Ab_C) + (2.0/3)*(AB_Abc_C) + (AC_Ab_Bc)') +
     choose(T, 1) * evaluate('(1.0/6)*(ABC_Abc)') 
+)
+
+S_lin = svaluate('(Loss) + X*T*(A_A)')
+S_qua = S_lin + X*X*(
+    choose(T, 2) * svaluate('(3.0/2)*(A_Ab_B)') +
+    choose(T, 1) * svaluate('(1.0/2)*(AB_Ab)')
+)
+S_cub = S_qua + X*X*X*(
+    choose(T, 3) * svaluate('(5.0/2)*(A_Ab_Bc_C) + (2.0/3)*(A_Abc_B_C)') +
+    choose(T, 2) * svaluate('(ABc_Ab_C) + (2.0/3)*(AB_Abc_C) + (AC_Ab_Bc)') +
+    choose(T, 1) * svaluate('(1.0/6) * (ABC_Abc)') 
 )
 
 a = +evaluate('(Loss)')
@@ -156,20 +187,11 @@ B = b/a
 C = (c-B*B)/a
 D = (d-3*B*C+B*B*B)/a
 
-#E_lin = np.exp(A + B*X)
-#E_qua = np.exp(A + B*X + C*X*X/2)
-#E_cub = np.exp(A + B*X + C*X*X/2 + D*X*X*X/6)
+E_lin = np.exp(A + B*X)
+E_qua = np.exp(A + B*X + C*X*X/2)
+E_cub = np.exp(A + B*X + C*X*X/2 + D*X*X*X/6)
 
-S_lin = svaluate('(Loss) + X*T*(A_A)')
-S_qua = S_lin + X*X*(
-    choose(T, 2) * svaluate('(3.0/2)*(A_Ab_B)') +
-    choose(T, 1) * svaluate('(1.0/2)*(AB_Ab)')
-)
-S_cub = S_qua + X*X*X*(
-    choose(T, 3) * svaluate('(5.0/2)*(A_Ab_Bc_C) + (2.0/3)*(A_Abc_B_C)') +
-    choose(T, 2) * svaluate('(ABc_Ab_C) + (2.0/3)*(AB_Abc_C) + (AC_Ab_Bc)') +
-    choose(T, 1) * svaluate('(1.0/6) * (ABC_Abc)') 
-)
+
 
 ################################################################################
 #           2. PLOT CURVES                                                     #

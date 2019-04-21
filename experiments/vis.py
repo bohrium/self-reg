@@ -20,8 +20,8 @@ import sys
 N = T = 10
 
 modes = {
-    'OUT-GD':  {'ylims':( 0.90 , 1.30 ), 'title':'GD Test Loss'}, 
-    'OUT-SGD': {'ylims':( 0.90 , 1.30 ), 'title':'SGD Test Loss'},
+    'OUT-GD':  {'ylims':( 0.55 , 0.85 ), 'title':'GD Test Loss'}, 
+    'OUT-SGD': {'ylims':( 0.55 , 0.85 ), 'title':'SGD Test Loss'},
     'OUT-DIFF':{'ylims':(-0.20 , 0.20 ), 'title':'Test-Time Benefit of Stochasticity'},
     'GEN-GD':  {'ylims':(-0.05 , 1.25 ), 'title':'GD Generalization Gap'},
     'GEN-SGD': {'ylims':(-0.05 , 1.25 ), 'title':'SGD Generalization Gap'},

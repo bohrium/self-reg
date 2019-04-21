@@ -52,101 +52,135 @@ def draw(colors, arcs, filename):
 
     plt.imsave(filename, img)
 
-draw(colors = [red, red],
-     arcs = [(0, 1)],
-     filename = 'rr.png')
-draw(colors = [red, green],
-     arcs = [(0, 1)],
-     filename = 'rg.png')
+draw(colors = [red, green, blue, green],
+     arcs = [(0, 1), (1, 2), (2, 3)],
+     filename = '../slide-fodder/sasha/new-rgbg.png')
+
 draw(colors = [red, red, green],
      arcs = [(0, 2), (1, 2)],
-     filename = 'rrg.png')
-draw(colors = [red, green, blue],
-     arcs = [(0, 1), (1, 2)],
-     filename = 'rgb.png')
-draw(colors = [red, green, blue],
-     arcs = [(0, 1), (1, 2), (1, 2)],
-     filename = 'rggb.png')
+     filename = '../slide-fodder/sasha/new-rrg.png')
+
+draw(colors = [red, red, red, green],
+     arcs = [(0, 3), (1, 3), (2, 3)],
+     filename = '../slide-fodder/sasha/new-rrrg.png')
+
+
+
 draw(colors = [red, green, green, blue],
      arcs = [(0, 1), (1, 3), (2, 3)],
-     filename = 'rggb-a.png')
-draw(colors = [red, green, green, blue],
-     arcs = [(0, 2), (1, 3), (2, 3)],
-     filename = 'rggb-b.png')
-draw(colors = [red, green, blue],
-     arcs = [(0, 1), (0, 1), (1, 2)],
-     filename = 'rrgb.png')
+     filename = '../slide-fodder/sasha/new-rggb.png')
+
 draw(colors = [red, red, green, blue],
      arcs = [(0, 2), (1, 2), (2, 3)],
-     filename = 'rrgb-a.png')
+     filename = '../slide-fodder/sasha/new-rrgb-a.png')
+
+draw(colors = [red, red, green, blue],
+     arcs = [(0, 3), (1, 3), (2, 3)],
+     filename = '../slide-fodder/sasha/new-rrgb-b.png')
+
+draw(colors = [red, red, green, blue],
+     arcs = [(0, 2), (1, 3), (2, 3)],
+     filename = '../slide-fodder/sasha/new-rrgb-c.png')
 
 
 
 
-draw(colors = [red],
-     arcs = [],
-     filename = 'sgd-0.png')
 
-draw(colors = [red, green],
-     arcs = [(0, 1)],
-     filename = 'sgd-1.png')
-
-draw(colors = [red, green, blue],
-     arcs = [(0, 1), (1, 2)],
-     filename = 'sgd-2a.png')
-
-draw(colors = [red, green, blue],
-     arcs = [(0, 2), (1, 2)],
-     filename = 'sgd-2b.png')
-
-draw(colors = [red, green],
-     arcs = [(0, 1), (0, 1)],
-     filename = 'sgd-2c.png')
-
-draw(colors = [red, green, blue, gold],
-     arcs = [(0, 1), (1, 2), (2, 3)], 
-     filename = 'sgd-3a.png')
-
-draw(colors = [red, green, blue, gold],
-     arcs = [(0, 2), (1, 2), (2, 3)], 
-     filename = 'sgd-3b.png')
-
-draw(colors = [red, green, blue, gold],
-     arcs = [(0, 3), (1, 2), (2, 3)], 
-     filename = 'sgd-3c.png')
-
-draw(colors = [red, green, blue, gold],
-     arcs = [(0, 1), (1, 3), (2, 3)], 
-     filename = 'sgd-3d.png')
-
-draw(colors = [red, green, blue, gold],
-     arcs = [(0, 2), (1, 3), (2, 3)], 
-     filename = 'sgd-3e.png')
-
-draw(colors = [red, green, blue, gold],
-     arcs = [(0, 3), (1, 3), (2, 3)], 
-     filename = 'sgd-3f.png')
-
-draw(colors = [red, green, blue],
-     arcs = [(0, 1), (1, 2), (1, 2)], 
-     filename = 'sgd-3g.png')
-
-draw(colors = [red, green, blue],
-     arcs = [(0, 1), (0, 1), (1, 2)], 
-     filename = 'sgd-3h.png')
-
-draw(colors = [red, green, blue],
-     arcs = [(0, 2), (1, 2), (1, 2)], 
-     filename = 'sgd-3i.png')
-
-draw(colors = [red, green, blue],
-     arcs = [(0, 2), (0, 2), (1, 2)], 
-     filename = 'sgd-3j.png')
-
-draw(colors = [red, green, blue],
-     arcs = [(0, 1), (0, 2), (1, 2)], 
-     filename = 'sgd-3k.png')
-
-draw(colors = [red, green],
-     arcs = [(0, 1), (0, 1), (0, 1)], 
-     filename = 'sgd-3l.png')
+#draw(colors = [red, red],
+#     arcs = [(0, 1)],
+#     filename = 'rr.png')
+#draw(colors = [red, green],
+#     arcs = [(0, 1)],
+#     filename = 'rg.png')
+#draw(colors = [red, red, green],
+#     arcs = [(0, 2), (1, 2)],
+#     filename = 'rrg.png')
+#draw(colors = [red, green, blue],
+#     arcs = [(0, 1), (1, 2)],
+#     filename = 'rgb.png')
+#draw(colors = [red, green, blue],
+#     arcs = [(0, 1), (1, 2), (1, 2)],
+#     filename = 'rggb.png')
+#draw(colors = [red, green, green, blue],
+#     arcs = [(0, 1), (1, 3), (2, 3)],
+#     filename = 'rggb-a.png')
+#draw(colors = [red, green, green, blue],
+#     arcs = [(0, 2), (1, 3), (2, 3)],
+#     filename = 'rggb-b.png')
+#draw(colors = [red, green, blue],
+#     arcs = [(0, 1), (0, 1), (1, 2)],
+#     filename = 'rrgb.png')
+#draw(colors = [red, red, green, blue],
+#     arcs = [(0, 2), (1, 2), (2, 3)],
+#     filename = 'rrgb-a.png')
+#
+#
+#
+#
+#draw(colors = [red],
+#     arcs = [],
+#     filename = 'sgd-0.png')
+#
+#draw(colors = [red, green],
+#     arcs = [(0, 1)],
+#     filename = 'sgd-1.png')
+#
+#draw(colors = [red, green, blue],
+#     arcs = [(0, 1), (1, 2)],
+#     filename = 'sgd-2a.png')
+#
+#draw(colors = [red, green, blue],
+#     arcs = [(0, 2), (1, 2)],
+#     filename = 'sgd-2b.png')
+#
+#draw(colors = [red, green],
+#     arcs = [(0, 1), (0, 1)],
+#     filename = 'sgd-2c.png')
+#
+#draw(colors = [red, green, blue, gold],
+#     arcs = [(0, 1), (1, 2), (2, 3)], 
+#     filename = 'sgd-3a.png')
+#
+#draw(colors = [red, green, blue, gold],
+#     arcs = [(0, 2), (1, 2), (2, 3)], 
+#     filename = 'sgd-3b.png')
+#
+#draw(colors = [red, green, blue, gold],
+#     arcs = [(0, 3), (1, 2), (2, 3)], 
+#     filename = 'sgd-3c.png')
+#
+#draw(colors = [red, green, blue, gold],
+#     arcs = [(0, 1), (1, 3), (2, 3)], 
+#     filename = 'sgd-3d.png')
+#
+#draw(colors = [red, green, blue, gold],
+#     arcs = [(0, 2), (1, 3), (2, 3)], 
+#     filename = 'sgd-3e.png')
+#
+#draw(colors = [red, green, blue, gold],
+#     arcs = [(0, 3), (1, 3), (2, 3)], 
+#     filename = 'sgd-3f.png')
+#
+#draw(colors = [red, green, blue],
+#     arcs = [(0, 1), (1, 2), (1, 2)], 
+#     filename = 'sgd-3g.png')
+#
+#draw(colors = [red, green, blue],
+#     arcs = [(0, 1), (0, 1), (1, 2)], 
+#     filename = 'sgd-3h.png')
+#
+#draw(colors = [red, green, blue],
+#     arcs = [(0, 2), (1, 2), (1, 2)], 
+#     filename = 'sgd-3i.png')
+#
+#draw(colors = [red, green, blue],
+#     arcs = [(0, 2), (0, 2), (1, 2)], 
+#     filename = 'sgd-3j.png')
+#
+#draw(colors = [red, green, blue],
+#     arcs = [(0, 1), (0, 2), (1, 2)], 
+#     filename = 'sgd-3k.png')
+#
+#draw(colors = [red, green],
+#     arcs = [(0, 1), (0, 1), (0, 1)], 
+#     filename = 'sgd-3l.png')
