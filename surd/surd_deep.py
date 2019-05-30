@@ -4,12 +4,12 @@
     descrp: Append summary of SURD, SGD, GD losses (on a deep network on MNIST 0-vs-1 classification) to a file.
             Here, `SGD` means `batch size 1 without replacement`.  
             To run, type:
-                python surd_deep.py 1000 100 0.00 0.005 12 32 experdata_deep.txt 
+                python surd_deep.py 1000 10 0.00 0.05 6 32 experdata_deep.txt 
             The                    1000   gives   a number of trials to perform per experimental condition;
-            the                     100   gives   a training set size and number of gradient updates;
+            the                      10   gives   a training set size and number of gradient updates;
             the                    0.00   gives   a starting learning rate to sweep from;
             the                    0.05   gives   a ending learning rate to sweep to;
-            the                      12   gives   (one less than) the number of learning rates to sweep through;
+            the                       6   gives   (one less than) the number of learning rates to sweep through;
             the                      32   gives   a desired floating point precision (32 or 64);
             the      experdata_deep.txt   gives   a filename of a log to which to append.
 '''
@@ -28,7 +28,9 @@ LR_SWEEP  = int(sys.argv[5])
 PRECISION = {32:tf.float32, 64:tf.float64}[int(sys.argv[6])]
 FILE_NM   = sys.argv[7]
 
-BETA = 1.0
+#BETA = 0.01
+#BETA = 0.02
+BETA = 0.005
 
 
 ################################################################################
@@ -163,8 +165,8 @@ class Learner(object):
         self.BETA = tf.placeholder(dtype=precision)
 
         self.Loss = tf.reduce_mean(self.Losses)
-        GradientDiff = self.Loss#tf.convert_to_tensor(tf.gradients(self.Losses[0] - self.Losses[1], self.Weights))[0]
-        self.SURDLoss = self.Loss #+ self.BETA * tf.reduce_sum(tf.square(GradientDiff))
+        GradientDiff = tf.convert_to_tensor(tf.gradients(self.Losses[0] - self.Losses[1], self.Weights))[0]
+        self.SURDLoss = self.Loss + self.BETA * tf.reduce_sum(tf.square(GradientDiff))
 
         self.GradientWeights = tf.convert_to_tensor(tf.gradients(self.Loss, self.Weights))[0]
         self.Update = tf.tuple([
@@ -247,9 +249,11 @@ class Logger(object):
         for key in list(self.scores.keys()): 
             if key[5] != 'gd': continue
             key_ = key[:5] + ('sgd',) + key[6:]
-            key__= key[:5] + ('diff',) + key[6:]
-            if key_ not in self.scores: continue
-            self.scores[key__] = [gd_val-sgd_val for gd_val, sgd_val in zip(self.scores[key], self.scores[key_])] 
+            key__ = key[:5] + ('surd',) + key[6:]
+            key___= key[:5] + ('diff',) + key[6:]
+            key____= key[:5] + ('diff2',) + key[6:]
+            self.scores[key___] = [gd_val-sgd_val for gd_val, sgd_val in zip(self.scores[key], self.scores[key_])] 
+            self.scores[key____] = [sgd_val-surd_val for sgd_val, surd_val in zip(self.scores[key_], self.scores[key__])] 
 
     def get_stats(self, key):
         ''' Compute mean, sample deviation, min, and max '''
@@ -291,8 +295,8 @@ def run_experiment(nb_trials, ins_size, ins_time, batch_size, learning_rates):
                     learner.initialize_weights(*init_weights)
                     bs = (batch_size*2) if opt=='surd' else batch_size 
                     il, ol = learner.run(dataset, ins_time, bs, learning_rate, opt) 
-                    logger.append((nb_trials, ins_size, ins_time, bs, learning_rate, opt, 'IL'), il)
-                    logger.append((nb_trials, ins_size, ins_time, bs, learning_rate, opt, 'OL'), ol)
+                    logger.append((nb_trials, ins_size, ins_time, batch_size, learning_rate, opt, 'IL'), il)
+                    logger.append((nb_trials, ins_size, ins_time, batch_size, learning_rate, opt, 'OL'), ol)
     except KeyboardInterrupt:
         pass
 
