@@ -17,11 +17,11 @@ from torchvision import datasets, transforms
 
 
 ################################################################################
-#           0. MNIST LOGISTIC EXAMPLE                                          #
+#           0. MNIST                                                           #
 ################################################################################
 
     #--------------------------------------------------------------------------#
-    #               1.0 begin defining landscape by providing data population  #
+    #               0.0 begin defining landscape by providing data population  #
     #--------------------------------------------------------------------------#
 
 class MNIST(PointedLandscape):
@@ -51,15 +51,15 @@ class MNIST(PointedLandscape):
     def sample_data(self, N):
         return np.random.choice(self.idxs, N, replace=False)
 
-class MNIST_LeNet(MNIST):
+    #--------------------------------------------------------------------------#
+    #               0.1 finish landscape definition by providing architecture  #
+    #--------------------------------------------------------------------------#
+
+class MnistAbstractArchitecture(MNIST):
     def __init__(self, digits=list(range(10))):
         super().__init__(digits)
-        self.subweight_shapes = [
-            (16 ,  1     , 5, 5), 
-            (16 , 16     , 5, 5),
-            (16 , 4*4*16       ), 
-            (10 , 16           )
-        ]
+
+    def initialize_weights_from_shapes(self):
         self.subweight_offsets = [
             sum(prod(shape) for shape in self.subweight_shapes[:depth])
             for depth in range(len(self.subweight_shapes)+1) 
@@ -83,6 +83,40 @@ class MNIST_LeNet(MNIST):
     def update_weights(self, displacement):
         self.weights.data += displacement.detach().data
 
+    def nabla(self, scalar_stalk, create_graph=True):
+        return torch.autograd.grad(
+            scalar_stalk,
+            self.weights,
+            create_graph=create_graph,
+        )[0] 
+
+class MnistLogistic(MnistAbstractArchitecture):
+    def __init__(self, digits=list(range(10))):
+        super().__init__(digits)
+        self.subweight_shapes = [
+            (self.nb_classes , 28*28        ),
+            (self.nb_classes , 1            )
+        ]
+        self.initialize_weights_from_shapes()
+    def get_loss_stalk(self, data_indices):
+        x, y = self.imgs[data_indices], self.lbls[data_indices]
+        x = x.view(-1, 28*28, 1)
+        x = matmul(self.get_subweight(0), x) #+ self.get_subweight(1).unsqueeze(0)
+        x = x.view(-1, self.nb_classes)
+        logits = log_softmax(x, dim=1)
+        loss = nll_loss(logits, y)
+        return loss
+
+class MnistLeNet(MnistAbstractArchitecture):
+    def __init__(self, digits=list(range(10))):
+        super().__init__(digits)
+        self.subweight_shapes = [
+            (16              ,  1     , 5, 5), 
+            (16              , 16     , 5, 5),
+            (16              , 4*4*16       ), 
+            (self.nb_classes , 16           )
+        ]
+        self.initialize_weights_from_shapes()
     def get_loss_stalk(self, data_indices):
         x, y = self.imgs[data_indices], self.lbls[data_indices]
         x = relu(1.0 + conv2d(x, self.get_subweight(0), bias=None, stride=2))
@@ -95,25 +129,25 @@ class MNIST_LeNet(MNIST):
         loss = nll_loss(logits, y)
         return loss
 
-    def nabla(self, scalar_stalk, create_graph=True):
-        return torch.autograd.grad(
-            scalar_stalk,
-            self.weights,
-            create_graph=create_graph,
-        )[0] 
+
+
+    #--------------------------------------------------------------------------#
+    #               0.2 demonstrate interface by descending with grad stats    #
+    #--------------------------------------------------------------------------#
  
 if __name__=='__main__':
-    BATCH = 32
-    LRATE = 1.0
+    BATCH = 200
+    LRATE = 1e-2
 
-    ML = MNIST_LeNet() 
-    for i in range(5000):
+    #ML = MnistLeNet() 
+    ML = MnistLogistic(digits=[0, 1]) 
+    for i in range(1000):
         D = ML.sample_data(N=BATCH)
         L = ML.get_loss_stalk(D)
         G = ML.nabla(L)
         ML.update_weights(-LRATE * G)
 
-        if (i+1)%250: continue
+        if (i+1)%50: continue
 
         La, Lb, Lc = (ML.get_loss_stalk(ML.sample_data(N=BATCH)) for i in range(3))
         Ga, Gb, Gc = (ML.nabla(Lx) for Lx in (La, Lb, Lc))
@@ -124,9 +158,9 @@ if __name__=='__main__':
             for Gx, Gy in ((Ga, Ga), (Ga, Gb)) 
         )
         CH = (GaHcGa-GaHcGb) * 25**2 / (25-1.0) 
-        print(CC+'after {} steps, \t batch perplexity @B {:.2f} @W \t GG @G {:+.1e} @W \t tr(C) @Y {:.1e} @W \t tr(CH) @R {:+.1e} @W '.format(
+        print(CC+'after {} steps, \t batch loss @B {:.3f} @W \t GG @G {:+.1e} @W \t tr(C) @Y {:.1e} @W \t tr(CH) @R {:+.1e} @W '.format(
             i+1,
-            np.exp(L.detach().numpy()),
+            L.detach().numpy(),
             GaGb.detach().numpy(),
             C.detach().numpy(),
             CH.detach().numpy()
