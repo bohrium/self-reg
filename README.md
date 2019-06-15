@@ -20,14 +20,14 @@ any theta infinitesimally close to theta0, and **ordinary tensors** at theta0 li
 deterministic or **certain** versions, for instance expectations over the whole population or
 samples at fixed data, do not.  In our tensorflow implementation, the corresponding types are: 
 
-    MATHEMATICAL OBJECT                     PYTHON TYPE
+    MATHEMATICAL OBJECT                             PYTHON TYPE
     
-    point x random  tensor field            PointedLandscape 
-            random  tensor stalk            tf.Tensor 
-            random  tensor                   
-            certain tensor field             
-            certain tensor stalk                       
-            certain tensor                  np.array 
+    weight x random  tensor field           <--->   PointedLandscape 
+             random  tensor stalk x datapt   --->   torch Tensor 
+             random  tensor       x datapt   --->   numpy array 
+             certain tensor field           <---    PointedLandscape x datapt
+             certain tensor stalk           <--->   torch Tensor     
+             certain tensor                 <--->   numpy array 
 
 ### directory structure
     self-reg/
