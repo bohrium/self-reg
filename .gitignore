@@ -1,1 +1,5 @@
 experiments/MNIST_data/*
+experiments/MNIST/*
+experiments/data/*
+experiments/__pycache__/*
+data/*

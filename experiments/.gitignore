@@ -1,0 +1,6 @@
+MNIST/*
+data/*
+../data/MNIST/processed/*
+../data/MNIST/raw/*
+../data/*
+__pycache__/*
