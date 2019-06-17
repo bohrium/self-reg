@@ -73,19 +73,21 @@ def compute_grad_stats(land, N, I=1):
 if __name__ == '__main__':
     from quad_landscapes import Quadratic
     DIM = 8
-    Q = Quadratic(dim=DIM)
+    hessian = torch.eye(DIM) 
+    hessian[:int(DIM/2)] *= 2
+    Q = Quadratic(dim=DIM, hessian=hessian)
     gs = compute_grad_stats(Q, N=100, I=1000)
     for name, value in sorted(gs.items()):
-        print(CC+'stat @R {:16s} @W \t measured @G {:+.1f} @W \t expected @Y {:.1f} @W '.format(
+        print(CC+'stat @R {:16s} @W \t measured @G {:+.2f} @W \t expected @Y {:.2f} @W '.format(
             name,
             value,
             {
-                '(0)()': DIM/2.0,
+                '(0)()': DIM * 3.0/2,
                 '(0-1)(01)': 0.0,
-                '(01)(01)': DIM,
+                '(01)(01)': DIM * 5.0/2,
                 '(0-1-2)(01-02)': 0.0,
-                '(0-12)(01-02)': DIM,
+                '(0-12)(01-02)': DIM * 9.0/2,
                 '(0-12)(01-12)': 0.0,
-                '(012)(01-02)': DIM
+                '(012)(01-02)': DIM * 9.0/2 
             }[name]
         ))
