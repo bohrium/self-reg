@@ -18,7 +18,7 @@ class Quadratic(PointedLandscape):
     def __init__(self, dim, hessian=None, covariance=None):
         self.dim = dim
         self.weights = torch.autograd.Variable(
-            0.0 * torch.zeros(dim, dtype=torch.float, device=device),
+            1.0 + torch.zeros(dim, dtype=torch.float, device=device),
             requires_grad=True
         )
         self.hessian    = hessian    if hessian    is not None else torch.eye(dim)
