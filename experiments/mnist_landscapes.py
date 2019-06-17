@@ -158,7 +158,7 @@ if __name__=='__main__':
             for Gx, Gy in ((Ga, Ga), (Ga, Gb)) 
         )
         CH = (GaHcGa-GaHcGb) * 25**2 / (25-1.0) 
-        print(CC+'after {} steps, \t batch loss @B {:.3f} @W \t GG @G {:+.1e} @W \t tr(C) @Y {:.1e} @W \t tr(CH) @R {:+.1e} @W '.format(
+        print(CC+'after {} steps, \t batch loss @B {:.3f} @W \t GG @G {:+.1e} @W \t tr(C) @Y {:+.1e} @W \t tr(CH) @R {:+.1e} @W '.format(
             i+1,
             L.detach().numpy(),
             GaGb.detach().numpy(),
