@@ -59,7 +59,7 @@ class MnistAbstractArchitecture(MNIST):
     def __init__(self, digits=list(range(10))):
         super().__init__(digits)
 
-    def initialize_weights_from_shapes(self):
+    def reset_weights(self):
         self.subweight_offsets = [
             sum(prod(shape) for shape in self.subweight_shapes[:depth])
             for depth in range(len(self.subweight_shapes)+1) 
@@ -97,7 +97,7 @@ class MnistLogistic(MnistAbstractArchitecture):
             (self.nb_classes , 28*28        ),
             (self.nb_classes , 1            )
         ]
-        self.initialize_weights_from_shapes()
+        self.reset_weights()
     def get_loss_stalk(self, data_indices):
         x, y = self.imgs[data_indices], self.lbls[data_indices]
         x = x.view(-1, 28*28, 1)
@@ -116,7 +116,7 @@ class MnistLeNet(MnistAbstractArchitecture):
             (16              , 4*4*16       ), 
             (self.nb_classes , 16           )
         ]
-        self.initialize_weights_from_shapes()
+        self.reset_weights()
     def get_loss_stalk(self, data_indices):
         x, y = self.imgs[data_indices], self.lbls[data_indices]
         x = relu(1.0 + conv2d(x, self.get_subweight(0), bias=None, stride=2))

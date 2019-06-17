@@ -17,10 +17,7 @@ class Quadratic(PointedLandscape):
     '''
     def __init__(self, dim, hessian=None, covariance=None):
         self.dim = dim
-        self.weights = torch.autograd.Variable(
-            1.0 + torch.zeros(dim, dtype=torch.float, device=device),
-            requires_grad=True
-        )
+        self.reset_weights()
         self.hessian    = hessian    if hessian    is not None else torch.eye(dim)
         self.covariance = covariance if covariance is not None else torch.eye(dim)
 
@@ -28,6 +25,12 @@ class Quadratic(PointedLandscape):
         self.sqrt_covariance = u.mm(
             s.pow(0.5).diag()
         ).mm(v) 
+
+    def reset_weights(self):
+        self.weights = torch.autograd.Variable(
+            1.0 + torch.zeros(self.dim, dtype=torch.float, device=device),
+            requires_grad=True
+        )
 
     def sample_data(self, N): 
         return torch.randn(N, self.dim).mm(self.sqrt_covariance)

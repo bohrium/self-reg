@@ -28,6 +28,14 @@ class PointedLandscape(ABC):
         pass
 
     @abstractmethod
+    def reset_weights(self):
+        ''' reset Point to a (potentially point) distribution that is a property of this Pointed
+            Landscape class (but not conceptually a property of the mathematical object).
+            should be automatically called also at initialization
+        '''
+        pass
+
+    @abstractmethod
     def update_weights(self, displacement):
         ''' add displacement to weights '''
         pass
