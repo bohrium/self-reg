@@ -18,7 +18,7 @@ class Quadratic(PointedLandscape):
     def __init__(self, dim, hessian=None, covariance=None):
         self.dim = dim
         self.weights = torch.autograd.Variable(
-            torch.zeros(dim, dtype=torch.float, device=device),
+            0.0 * torch.zeros(dim, dtype=torch.float, device=device),
             requires_grad=True
         )
         self.hessian    = hessian    if hessian    is not None else torch.eye(dim)
@@ -35,7 +35,7 @@ class Quadratic(PointedLandscape):
     def get_loss_stalk(self, data):
         diff = data - (self.weights.unsqueeze(dim=0))
         diff2 = diff.t().mm(diff) 
-        return 0.5 * torch.mul(self.hessian, diff2).sum() / data.shape[0]
+        return 0.5 * diff2.mul(self.hessian).sum() / data.shape[0]
 
     def update_weights(self, displacement):
         self.weights.data += displacement.detach().data
@@ -48,15 +48,15 @@ class Quadratic(PointedLandscape):
         )[0] 
 
 if __name__=='__main__':
-    DIM, N = 180, 700 
+    DIM, N = 36, 196
     Q = Quadratic(dim=DIM)
 
     l = Q.get_loss_stalk(Q.sample_data(N)) 
-    print('loss {:.2f}, expected {:.2f}'.format(l.item(), DIM / 2.0))
+    print(CC+'loss @Y {:.2f}@W  expected @R {:.2f} @W '.format(l.item(), DIM / 2.0))
 
     gg = Q.nabla(l).pow(2).sum()
-    print('gg {:.2f}, expected {:.2f}'.format(gg.item(), DIM/N))
+    print(CC+'gg @Y {:.2f}@W  expected @R {:.2f} @W '.format(gg.item(), DIM*N/N**2))
 
     ghhg = (0.5 * Q.nabla(gg)).pow(2).sum()
-    print('ghhg {:.2f}, expected {:.2f}'.format(ghhg.item(), DIM/N))
+    print(CC+'ghhg @Y {:.2f}@W  expected @R {:.2f} @W '.format(ghhg.item(), DIM*N/N**2))
 
