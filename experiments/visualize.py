@@ -47,7 +47,7 @@ def plot_bars(x, y, s, color, label, z=1.96, bar_width=1.0/50):
     #--------------------------------------------------------------------------#
     #               2.1 plot curves                                            #
     #--------------------------------------------------------------------------#
-for opt in ('sgd', 'gd'):
+for opt in ('sgd',):#, 'gd'):
     X, Y, S = [], [], []
     for okey in ol:
         if okey.optimizer != opt: continue
@@ -62,7 +62,7 @@ for opt in ('sgd', 'gd'):
         X,
         Y,
         S,
-        color=blue if opt=='gd' else red,
+        color=blue if opt=='sgd' else red,
         label='experiment'
     )
 

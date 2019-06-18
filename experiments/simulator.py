@@ -77,7 +77,7 @@ if __name__=='__main__':
     ol = OptimLog()
     for eta in tqdm.tqdm(np.arange(0.0005, 0.005, 0.001)):
         for T in [100]:
-            ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(100000.0/(T+1))))
+            ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(1000.0/(T+1))))
     print(ol)
     with open('ol.data', 'w') as f:
         f.write(str(ol))

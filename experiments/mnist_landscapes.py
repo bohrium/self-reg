@@ -65,7 +65,7 @@ class MnistAbstractArchitecture(MNIST):
             for depth in range(len(self.subweight_shapes)+1) 
         ]
         self.subweight_scales = [
-            (shape[0] + prod(shape[1:]))**(-0.5)
+            2.0*(shape[0] + prod(shape[1:]))**(-0.5)
             for shape in self.subweight_shapes
         ]
 
@@ -116,18 +116,18 @@ class MnistLeNet(MnistAbstractArchitecture):
     def __init__(self, digits=list(range(10))):
         super().__init__(digits)
         self.subweight_shapes = [
-            (16              ,  1     , 5, 5), 
-            (16              , 16     , 5, 5),
-            (16              , 4*4*16       ), 
-            (self.nb_classes , 16           )
+            (16              ,  1     , 5, 5),      #(16,), 
+            (16              , 16     , 5, 5),      #(16,),
+            (16              , 4*4*16       ),      #(16,),
+            (self.nb_classes , 16           ),      #(self.nb_classes,)
         ]
         self.reset_weights()
     def get_loss_stalk(self, data_indices):
         x, y = self.imgs[data_indices], self.lbls[data_indices]
-        x = tanh(1.0 + conv2d(x, self.get_subweight(0), bias=None, stride=2))
-        x = tanh(1.0 + conv2d(x, self.get_subweight(1), bias=None, stride=2))
+        x = tanh(conv2d(x, self.get_subweight(0), bias=None, stride=2))
+        x = tanh(conv2d(x, self.get_subweight(1), bias=None, stride=2))
         x = x.view(-1, 4*4*16, 1)
-        x = tanh(1.0 + matmul(self.get_subweight(2), x))
+        x = tanh(matmul(self.get_subweight(2), x))
         x = matmul(self.get_subweight(3), x)
         x = x.view(-1, self.nb_classes)
         logits = log_softmax(x, dim=1)

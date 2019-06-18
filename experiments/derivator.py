@@ -65,7 +65,7 @@ if __name__ == '__main__':
 
     from mnist_landscapes import MnistLeNet
     LC = MnistLeNet()
-    grad_stats = str(compute_grad_stats(LC, N=30, I=1000))
+    grad_stats = str(compute_grad_stats(LC, N=300, I=10000))
     with open('gs.data', 'w') as f:
         f.write(grad_stats)
 
