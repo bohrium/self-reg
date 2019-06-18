@@ -15,7 +15,7 @@ import tqdm
 
 def compute_sgd_loss(land, eta, T, N, I=1):
     ol = OptimLog()
-    for i in range(I):
+    for i in tqdm.tqdm(range(I)):
         land.reset_weights()
         D = land.sample_data(2*N) 
         D_train, D_test = D[:N], D[N:]
@@ -47,11 +47,9 @@ if __name__=='__main__':
     DIM = 8
     Q = Quadratic(dim=DIM)
     ol = OptimLog()
-    for T in tqdm.tqdm(range(5, 100, 30)):
-        #for etaT in tqdm.tqdm(np.arange(0.05, 1.00, 0.30)):
-        #    ol.absorb(compute_gd_loss(Q, eta=etaT/T, T=T, N=T, I=int(1000.0/(T+1))))
-        for eta in [0.01]:
-            ol.absorb(compute_gd_loss(Q, eta=eta, T=T, N=T, I=int(1000.0/(T+1))))
+    for eta in tqdm.tqdm(np.arange(0.0005, 0.005, 0.001)):
+        for T in [100]:
+            ol.absorb(compute_sgd_loss(Q, eta=eta, T=T, N=T, I=int(100000.0/(T+1))))
     print(ol)
     with open('ol.data', 'w') as f:
         f.write(str(ol))

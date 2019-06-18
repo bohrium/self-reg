@@ -62,12 +62,14 @@ def compute_grad_stats(land, N, I=1):
 
 if __name__ == '__main__':
     from quad_landscapes import Quadratic
-    DIM = 2
+    DIM = 8
     hessian = torch.eye(DIM) 
-    hessian[:int(DIM/2)] *= 2
+    #hessian[:int(DIM/2)] *= 2
     Q = Quadratic(dim=DIM, hessian=hessian)
-    grad_stats = eval(str(compute_grad_stats(Q, N=30, I=10000)))
-    for name, stats in sorted(grad_stats.items()):
+    grad_stats = str(compute_grad_stats(Q, N=30, I=10000))
+    with open('gs.data', 'w') as f:
+        f.write(grad_stats)
+    for name, stats in sorted(eval(grad_stats).items()):
         print(CC+'stat @R {:16s} @W \t measured @G {:+.2f} @W - @G {:+.2f} @W \t expected @Y {:.2f} @W '.format(
             name,
             stats["mean"] - 1.96 * stats["stdv"]/stats["nb_samples"]**0.5,
