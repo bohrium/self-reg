@@ -21,7 +21,7 @@ def from_string(formula, eta, T):
     S = formula.replace('- ', '+ ').replace(' -', ' +')
     for k in gs:
         Y = Y.replace(k, 'gs["{}"]["mean"]'.format(k))
-        S = S.replace(k, '1.96*gs["{}"]["stdv"]/gs["{}"]["nb_samples"]'.format(k, k))
+        S = S.replace(k, 'gs["{}"]["stdv"]/gs["{}"]["nb_samples"]'.format(k, k))
     return (eval(form, {'eta':eta, 'T':T, 'gs':gs}) for form in (Y, S))
 
 def sgd_test_linear(eta, T):

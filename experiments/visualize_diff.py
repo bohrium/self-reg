@@ -47,40 +47,40 @@ def plot_bars(x, y, s, color, label, z=1.96, bar_width=1.0/50):
     #--------------------------------------------------------------------------#
     #               2.1 plot curves                                            #
     #--------------------------------------------------------------------------#
-for opt in ('sgd', 'gd'):
-    X, Y, S = [], [], []
+X, Y, S = ({'sgd':[], 'gd':[], 'diff':[]} for i in range(3))
+for opt in ('sgd', 'gd', 'diff'):
     for okey in ol:
         if okey.optimizer != opt: continue
-        X.append(okey.eta)
-        Y.append(ol[okey]['mean'])
-        S.append(ol[okey]['stdv']/ol[okey]['nb_samples']**0.5)
-    X = np.array(X)
-    Y = np.array(Y)
-    S = np.array(S)
+        X[opt].append(okey.eta)
+        Y[opt].append(ol[okey]['mean'])
+        S[opt].append(ol[okey]['stdv']/ol[okey]['nb_samples']**0.5)
+    X[opt] = np.array(X[opt])
+    Y[opt] = np.array(Y[opt])
+    S[opt] = np.array(S[opt])
     
-    plot_bars(
-        X,
-        Y,
-        S,
-        color=blue if opt=='gd' else red,
-        label='experiment'
-    )
+plot_bars(
+    X['diff'],
+    Y['diff'],
+    S['diff'],
+    color=blue,
+    label='experiment'
+)
 
-X = np.arange(0.00, 1.01, 0.01)*(max(X)-min(X)) + min(X)
-Y, S = sgd_test_linear(eta=X, T=100) 
-plot_fill(X, Y, S, color=red, label='linear')
-Y, S = sgd_test_quadratic(eta=X, T=100) 
-plot_fill(X, Y, S, color=green, label='quadratic')
+#X = np.arange(0.00, 1.01, 0.01)*(max(X)-min(X)) + min(X)
+#Y, S = sgd_test_linear(eta=X, T=100) 
+#plot_fill(X, Y, S, color=red, label='linear')
+#Y, S = sgd_test_quadratic(eta=X, T=100) 
+#plot_fill(X, Y, S, color=green, label='quadratic')
 
     #--------------------------------------------------------------------------#
     #               2.2 label and save figures                                 #
     #--------------------------------------------------------------------------#
 
 plt.xlabel('eta')
-plt.ylabel('loss')
+plt.ylabel('diff loss')
 plt.gca().spines['right'].set_visible(False)
 plt.gca().spines['top'].set_visible(False)
 plt.legend(loc='best')
 #plt.xticks(np.arange(0.00, 0.0075, 0.0025))
 #plt.yticks(np.arange(4, 9, 1))
-plt.savefig('plot.png', pad_inches=0, bbox_inches='tight')
+plt.savefig('diff.png', pad_inches=0, bbox_inches='tight')

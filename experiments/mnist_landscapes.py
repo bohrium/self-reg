@@ -11,8 +11,8 @@ from landscape import PointedLandscape
 
 import numpy as np
 import torch
-from torch import conv2d, matmul
-from torch.nn.functional import relu, log_softmax, nll_loss
+from torch import conv2d, matmul, tanh
+from torch.nn.functional import log_softmax, nll_loss 
 from torchvision import datasets, transforms
 
 
@@ -59,7 +59,7 @@ class MnistAbstractArchitecture(MNIST):
     def __init__(self, digits=list(range(10))):
         super().__init__(digits)
 
-    def reset_weights(self):
+    def reset_weights(self, weights=None):
         self.subweight_offsets = [
             sum(prod(shape) for shape in self.subweight_shapes[:depth])
             for depth in range(len(self.subweight_shapes)+1) 
@@ -70,7 +70,9 @@ class MnistAbstractArchitecture(MNIST):
         ]
 
         self.weights = torch.autograd.Variable(
-            torch.randn(self.subweight_offsets[-1], device=device),
+            torch.randn(self.subweight_offsets[-1], device=device)
+            if weights is None else torch.Tensor(weights)
+            ,
             requires_grad=True
         )
         self.get_subweight = lambda depth: ( 
@@ -79,6 +81,9 @@ class MnistAbstractArchitecture(MNIST):
                          self.subweight_offsets[depth+1]]
             .view(self.subweight_shapes[depth])
         )
+
+    def get_weights(self):
+        return self.weights.detach().numpy()
 
     def update_weights(self, displacement):
         self.weights.data += displacement.detach().data
@@ -119,10 +124,10 @@ class MnistLeNet(MnistAbstractArchitecture):
         self.reset_weights()
     def get_loss_stalk(self, data_indices):
         x, y = self.imgs[data_indices], self.lbls[data_indices]
-        x = relu(1.0 + conv2d(x, self.get_subweight(0), bias=None, stride=2))
-        x = relu(1.0 + conv2d(x, self.get_subweight(1), bias=None, stride=2))
+        x = tanh(1.0 + conv2d(x, self.get_subweight(0), bias=None, stride=2))
+        x = tanh(1.0 + conv2d(x, self.get_subweight(1), bias=None, stride=2))
         x = x.view(-1, 4*4*16, 1)
-        x = relu(1.0 + matmul(self.get_subweight(2), x))
+        x = tanh(1.0 + matmul(self.get_subweight(2), x))
         x = matmul(self.get_subweight(3), x)
         x = x.view(-1, self.nb_classes)
         logits = log_softmax(x, dim=1)
