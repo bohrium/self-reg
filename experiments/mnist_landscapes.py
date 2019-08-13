@@ -1,5 +1,5 @@
 ''' author: samtenka
-    change: 2019-06-14
+    change: 2019-08-13
     create: 2019-06-11
     descrp: instantiate abstract class `Landscape` for MNIST models (logistic and deep)
 '''
@@ -43,7 +43,7 @@ class MNIST(PointedLandscape):
         self.lbls = torch.cat([train_set.train_labels, test_set.test_labels], dim=0).numpy()
         indices_to_keep = np.array([i for i, lbl in enumerate(self.lbls) if lbl in digits])        
         self.imgs = torch.Tensor(self.imgs[indices_to_keep]).view(-1, 1, 28, 28)
-        self.lbls = torch.Tensor(self.lbls[indices_to_keep]).view(-1).long()
+        self.lbls = torch.Tensor([digits.index(l) for l in self.lbls[indices_to_keep]]).view(-1).long()
         self.nb_classes = len(digits)
         self.nb_datapts = len(indices_to_keep)
         self.idxs = np.arange(self.nb_datapts)
@@ -56,8 +56,9 @@ class MNIST(PointedLandscape):
     #--------------------------------------------------------------------------#
 
 class MnistAbstractArchitecture(MNIST):
-    def __init__(self, digits=list(range(10))):
+    def __init__(self, digits=list(range(10)), weight_scale=1.0):
         super().__init__(digits)
+        self.weight_scale = weight_scale
 
     def reset_weights(self, weights=None):
         self.subweight_offsets = [
@@ -65,7 +66,7 @@ class MnistAbstractArchitecture(MNIST):
             for depth in range(len(self.subweight_shapes)+1) 
         ]
         self.subweight_scales = [
-            2.0*(shape[0] + prod(shape[1:]))**(-0.5)
+            self.weight_scale * (shape[0] + prod(shape[1:]))**(-0.5)
             for shape in self.subweight_shapes
         ]
 
@@ -96,8 +97,8 @@ class MnistAbstractArchitecture(MNIST):
         )[0] 
 
 class MnistLogistic(MnistAbstractArchitecture):
-    def __init__(self, digits=list(range(10))):
-        super().__init__(digits)
+    def __init__(self, digits=list(range(10)), weight_scale=0.1):
+        super().__init__(digits, weight_scale)
         self.subweight_shapes = [
             (self.nb_classes , 28*28        ),
             (self.nb_classes , 1            )
@@ -106,15 +107,15 @@ class MnistLogistic(MnistAbstractArchitecture):
     def get_loss_stalk(self, data_indices):
         x, y = self.imgs[data_indices], self.lbls[data_indices]
         x = x.view(-1, 28*28, 1)
-        x = matmul(self.get_subweight(0), x) #+ self.get_subweight(1).unsqueeze(0)
+        x = matmul(self.get_subweight(0), x) + self.get_subweight(1).unsqueeze(0)
         x = x.view(-1, self.nb_classes)
         logits = log_softmax(x, dim=1)
         loss = nll_loss(logits, y)
         return loss
 
 class MnistLeNet(MnistAbstractArchitecture):
-    def __init__(self, digits=list(range(10))):
-        super().__init__(digits)
+    def __init__(self, digits=list(range(10)), weight_scale=1.0):
+        super().__init__(digits, weight_scale)
         self.subweight_shapes = [
             (16              ,  1     , 5, 5),      #(16,), 
             (16              , 16     , 5, 5),      #(16,),
@@ -142,17 +143,20 @@ class MnistLeNet(MnistAbstractArchitecture):
  
 if __name__=='__main__':
     BATCH = 200
-    LRATE = 1e-2
 
-    #ML = MnistLeNet() 
-    ML = MnistLogistic(digits=[0, 1]) 
+    ML = MnistLeNet(digits=list(range(10))) 
+    LRATE = 1e-0
+
+    #ML = MnistLogistic(digits=list(range(10))) 
+    #LRATE = 1e-1
+
     for i in range(1000):
         D = ML.sample_data(N=BATCH)
         L = ML.get_loss_stalk(D)
         G = ML.nabla(L)
         ML.update_weights(-LRATE * G)
 
-        if (i+1)%50: continue
+        if (i+1)%100: continue
 
         La, Lb, Lc = (ML.get_loss_stalk(ML.sample_data(N=BATCH)) for i in range(3))
         Ga, Gb, Gc = (ML.nabla(Lx) for Lx in (La, Lb, Lc))
@@ -163,10 +167,10 @@ if __name__=='__main__':
             for Gx, Gy in ((Ga, Ga), (Ga, Gb)) 
         )
         CH = (GaHcGa-GaHcGb) * 25**2 / (25-1.0) 
-        print(CC+'after {} steps, \t batch loss @B {:.3f} @W \t GG @G {:+.1e} @W \t tr(C) @Y {:+.1e} @W \t tr(CH) @R {:+.1e} @W '.format(
-            i+1,
-            L.detach().numpy(),
-            GaGb.detach().numpy(),
-            C.detach().numpy(),
-            CH.detach().numpy()
-        ))
+        print(CC+' @C \t'.join([
+            'after {:4d} steps'.format(i+1),
+            'batch loss @B {:.2f}'.format(L.detach().numpy()),
+            'grad mag2 @G {:+.1e}'.format(GaGb.detach().numpy()),
+            'trace cov @Y {:+.1e}'.format(C.detach().numpy()),
+            'cov hess @R {:+.1e}'.format(CH.detach().numpy()),
+        '']))
