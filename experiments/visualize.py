@@ -51,7 +51,35 @@ def plot_bars(x, y, s, color, label, z=1.96, bar_width=1.0/50):
     #               2.1 plot curves                                            #
     #--------------------------------------------------------------------------#
 
-for opt in ('sgd',):#, 'gd'):
+#for opt in ('sgd',):#, 'gd'):
+#    X, Y, S = [], [], []
+#    for okey in ol:
+#        if okey.optimizer != opt: continue
+#        X.append(okey.eta)
+#        Y.append(ol[okey]['mean'])
+#        S.append(ol[okey]['stdv']/ol[okey]['nb_samples']**0.5)
+#    X = np.array(X)
+#    Y = np.array(Y)
+#    S = np.array(S)
+#    
+#    plot_bars(
+#        X,
+#        Y,
+#        S,
+#        color=blue if opt=='sgd' else red,
+#        label='experiment'
+#    )
+#
+#X = np.arange(0.00, 1.01, 0.01)*(max(X)-min(X)) + min(X)
+#Y, S = sgd_test_taylor(eta=X, T=100, degree=1) 
+#plot_fill(X, Y, S, color=red, label='theory (deg 1)')
+#Y, S = sgd_test_taylor(eta=X, T=100, degree=2) 
+#plot_fill(X, Y, S, color=yellow, label='theory (deg 2 poly)')
+#Y, S = sgd_test_exponential(eta=X, T=100)
+#plot_fill(X, Y, S, color=green, label='theory (deg 2 ode)')
+
+
+for opt in ('sgd', 'gd', 'gdc'):#, 'gd'):
     X, Y, S = [], [], []
     for okey in ol:
         if okey.optimizer != opt: continue
@@ -66,26 +94,30 @@ for opt in ('sgd',):#, 'gd'):
         X,
         Y,
         S,
-        color=blue if opt=='sgd' else red,
-        label='experiment'
+        color=cyan if opt=='sgd' else blue if opt=='gd' else magenta,
+        label=opt
     )
 
-X = np.arange(0.00, 1.01, 0.01)*(max(X)-min(X)) + min(X)
-Y, S = sgd_test_taylor(eta=X, T=100, degree=1) 
-plot_fill(X, Y, S, color=red, label='theory (deg 1)')
-Y, S = sgd_test_taylor(eta=X, T=100, degree=2) 
-plot_fill(X, Y, S, color=yellow, label='theory (deg 2 poly)')
-Y, S = sgd_test_exponential(eta=X, T=100)
-plot_fill(X, Y, S, color=green, label='theory (deg 2 ode)')
+#X = np.arange(0.00, 1.01, 0.01)*(max(X)-min(X)) + min(X)
+#Y, S = sgd_test_taylor(eta=X, T=100, degree=1) 
+#plot_fill(X, Y, S, color=red, label='theory (deg 1)')
+#Y, S = sgd_test_taylor(eta=X, T=100, degree=2) 
+#plot_fill(X, Y, S, color=yellow, label='theory (deg 2 poly)')
+#Y, S = sgd_test_exponential(eta=X, T=100)
+#plot_fill(X, Y, S, color=green, label='theory (deg 2 ode)')
+
+
 
 
     #--------------------------------------------------------------------------#
     #               2.2 label and save figures                                 #
     #--------------------------------------------------------------------------#
 
+#plt.title('SGD Test (mnist logistic landscape)')
+plt.title('Optimizers Test (mnist logistic landscape)')
 plt.xlabel('learning rate')
 plt.ylabel('test loss')
 plt.gca().spines['right'].set_visible(False)
 plt.gca().spines['top'].set_visible(False)
 plt.legend(loc='best')
-plt.savefig('plot.png', pad_inches=0, bbox_inches='tight')
+plt.savefig('plot.png', pad_inches=0.05, bbox_inches='tight')

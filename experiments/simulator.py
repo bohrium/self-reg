@@ -15,6 +15,7 @@ import torch
 import tqdm
 
 def compute_losses(land, eta, T, N, I=1):
+    assert N%2==0, 'GDC simulator needs N to be even for covariance estimation'
     ol = OptimLog()
     for i in tqdm.tqdm(range(I)):
         D = land.sample_data(2*N) 
@@ -40,8 +41,21 @@ def compute_losses(land, eta, T, N, I=1):
         gd_test_loss = land.get_loss_stalk(D_test)
         ol.accum(OptimKey(optimizer='gd', eta=eta, N=N, T=T, metric='test'), gd_test_loss)
 
-        # diff: 
+        # GDC:
+        land.reset_weights(w0)
+        for t in range(T):
+            gradA = land.nabla(land.get_loss_stalk(D_train[:int(N//2)]))
+            gradB = land.nabla(land.get_loss_stalk(D_train[int(N//2):]))
+            traceC = gradA.dot(gradA-gradB) * (N*N/4)  
+            grad = ((gradA + gradB)/2).detach()
+            grad_traceC = land.nabla(traceC, False).detach() 
+            land.update_weights(-eta*( grad + 0.01 * grad_traceC ))
+        gdc_test_loss = land.get_loss_stalk(D_test)
+        ol.accum(OptimKey(optimizer='gdc', eta=eta, N=N, T=T, metric='test'), gdc_test_loss)
+
+        # differences: 
         ol.accum(OptimKey(optimizer='diff', eta=eta, N=N, T=T, metric='test'), gd_test_loss-sgd_test_loss)
+        ol.accum(OptimKey(optimizer='diffc', eta=eta, N=N, T=T, metric='test'), gdc_test_loss-sgd_test_loss)
 
     return ol
 
@@ -51,9 +65,9 @@ if __name__=='__main__':
     #LC = Quadratic(dim=12)
 
     ol = OptimLog()
-    for eta in tqdm.tqdm(np.arange(0.0, 0.11, 0.02)):
+    for eta in tqdm.tqdm(np.arange(0.0, 0.21, 0.04)):
         for T in [100]:
-            ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(150000.0/(T+1))))
+            ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(15000.0/(T+1))))
     print(ol)
     with open('ol.data', 'w') as f:
         f.write(str(ol))
