@@ -22,13 +22,29 @@ def from_string(formula, eta, T):
     for k in gs:
         Y = Y.replace(k, 'gs["{}"]["mean"]'.format(k))
         S = S.replace(k, 'gs["{}"]["stdv"]/gs["{}"]["nb_samples"]**0.5'.format(k, k))
-    return (eval(form, {'eta':eta, 'T':T, 'gs':gs}) for form in (Y, S))
+    return (eval(form, {'eta':eta, 'T':T, 'gs':gs, 'np':np}) for form in (Y, S))
 
-def sgd_test_linear(eta, T):
-    Y, S = from_string('(0)() - eta*T*(0-1)(01)', eta, T)
+sgd_test_coeffs = (
+    '(+ ((0)()))',
+    '(- (T*(0-1)(01)))',
+    '(+ ((T*(T-1)/2.0)*2*(0-1-2)(01-02) + T*0.5*(0-12)(01-02)))',
+)
+def sgd_test_taylor(eta, T, degree):
+    assert 1 <= degree, 'need strictly positive degree of approximation!'
+    formula = ' + '.join('eta*'*d + sgd_test_coeffs[d] for d in range(degree+1))
+    print(formula)
+    Y, S = from_string(formula, eta, T)
     return Y, S
-def sgd_test_quadratic(eta, T):
-    Y, S = from_string('(0)() - eta*T*(0-1)(01) + eta*eta*(T*(T-1)/2.0)*2*(0-1-2)(01-02) + eta*eta*T*0.5*(0-12)(01-02)', eta, T)
+def sgd_test_exponential(eta, T):
+    ''' TODO: 
+    '''
+    # TODO: correct error bars 
+    cs = [sgd_test_coeffs[d] for d in range(3)]
+    rate = '(-2 * {} / {})'.format(cs[2], cs[1])
+    scale = '({} * {} / (2 * {}))'.format(cs[1], cs[1], cs[2])
+    offset = '({} - {} * {} / (2 * {}))'.format(cs[0], cs[1], cs[1], cs[2])
+    formula = '{} * np.exp(- {} * eta) + {}'.format(scale, rate, offset)
+    Y, S = from_string(formula, eta, T)
     return Y, S
 
 

@@ -13,13 +13,16 @@
 
 from matplotlib import pyplot as plt
 import numpy as np
-from predictor import sgd_test_linear, sgd_test_quadratic
+from predictor import sgd_test_taylor, sgd_test_exponential
 from optimlogs import OptimKey
 import sys 
 
 red  ='#cc4444'
+yellow='#888844'
 green='#44cc44'
+cyan='#448888'
 blue ='#4444cc'
+magenta='#884488'
 
 with open('ol.data') as f:
     ol = eval(f.read())
@@ -47,6 +50,7 @@ def plot_bars(x, y, s, color, label, z=1.96, bar_width=1.0/50):
     #--------------------------------------------------------------------------#
     #               2.1 plot curves                                            #
     #--------------------------------------------------------------------------#
+
 for opt in ('sgd',):#, 'gd'):
     X, Y, S = [], [], []
     for okey in ol:
@@ -67,20 +71,21 @@ for opt in ('sgd',):#, 'gd'):
     )
 
 X = np.arange(0.00, 1.01, 0.01)*(max(X)-min(X)) + min(X)
-Y, S = sgd_test_linear(eta=X, T=100) 
-plot_fill(X, Y, S, color=red, label='linear')
-Y, S = sgd_test_quadratic(eta=X, T=100) 
-plot_fill(X, Y, S, color=green, label='quadratic')
+Y, S = sgd_test_taylor(eta=X, T=100, degree=1) 
+plot_fill(X, Y, S, color=red, label='theory (deg 1)')
+Y, S = sgd_test_taylor(eta=X, T=100, degree=2) 
+plot_fill(X, Y, S, color=yellow, label='theory (deg 2 poly)')
+Y, S = sgd_test_exponential(eta=X, T=100)
+plot_fill(X, Y, S, color=green, label='theory (deg 2 ode)')
+
 
     #--------------------------------------------------------------------------#
     #               2.2 label and save figures                                 #
     #--------------------------------------------------------------------------#
 
-plt.xlabel('eta')
-plt.ylabel('loss')
+plt.xlabel('learning rate')
+plt.ylabel('test loss')
 plt.gca().spines['right'].set_visible(False)
 plt.gca().spines['top'].set_visible(False)
 plt.legend(loc='best')
-#plt.xticks(np.arange(0.00, 0.0075, 0.0025))
-#plt.yticks(np.arange(4, 9, 1))
 plt.savefig('plot.png', pad_inches=0, bbox_inches='tight')

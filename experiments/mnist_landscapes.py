@@ -77,9 +77,9 @@ class MnistAbstractArchitecture(MNIST):
             requires_grad=True
         )
         self.get_subweight = lambda depth: ( 
-            self.subweight_scales[depth] * 
+            (self.subweight_scales[depth] * 
             self.weights[self.subweight_offsets[depth]:
-                         self.subweight_offsets[depth+1]]
+                         self.subweight_offsets[depth+1]])
             .view(self.subweight_shapes[depth])
         )
 
@@ -97,7 +97,7 @@ class MnistAbstractArchitecture(MNIST):
         )[0] 
 
 class MnistLogistic(MnistAbstractArchitecture):
-    def __init__(self, digits=list(range(10)), weight_scale=0.1):
+    def __init__(self, digits=list(range(10)), weight_scale=0.01):
         super().__init__(digits, weight_scale)
         self.subweight_shapes = [
             (self.nb_classes , 28*28        ),
@@ -144,11 +144,11 @@ class MnistLeNet(MnistAbstractArchitecture):
 if __name__=='__main__':
     BATCH = 200
 
-    ML = MnistLeNet(digits=list(range(10))) 
-    LRATE = 1e-0
+    #ML = MnistLeNet(digits=list(range(10))) 
+    #LRATE = 1e-0
 
-    #ML = MnistLogistic(digits=list(range(10))) 
-    #LRATE = 1e-1
+    ML = MnistLogistic(digits=list(range(10))) 
+    LRATE = 3e-1
 
     for i in range(1000):
         D = ML.sample_data(N=BATCH)

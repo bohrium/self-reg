@@ -29,7 +29,7 @@ class PointedLandscape(ABC):
 
     @abstractmethod
     def reset_weights(self):
-        ''' reset Point to a (potentially point) distribution that is a property of this Pointed
+        ''' reset Point to a (potentially dirac) distribution that is a property of this Pointed
             Landscape class (but not conceptually a property of the mathematical object).
             should be automatically called also at initialization
         '''

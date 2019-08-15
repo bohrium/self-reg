@@ -1,5 +1,5 @@
 ''' author: samtenka
-    change: 2019-06-14
+    change: 2019-08-13
     create: 2019-06-12
     descrp: helpers for torch, math, profiling, and ansi commands
 '''
@@ -52,10 +52,13 @@ megs_alloced = lambda: (
 class Colorizer(object):
     def __init__(self):
         self.ANSI_by_name = {
+            '@K ': '\033[30m',
             '@R ': '\033[31m',
             '@G ': '\033[32m',
             '@Y ': '\033[33m',
             '@B ': '\033[34m',
+            '@M ': '\033[35m',
+            '@C ': '\033[36m',
             '@W ': '\033[37m',
             '@^ ': '\033[1A',
         }

@@ -1,5 +1,5 @@
 [//]: # (author: samtenka)
-[//]: # (change: 2019-06-10)
+[//]: # (change: 2019-08-13)
 [//]: # (create: 2019-06-10)
 [//]: # (descrp: introduction to project goals and code organization)
 

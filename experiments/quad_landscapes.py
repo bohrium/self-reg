@@ -1,7 +1,7 @@
 ''' author: samtenka
     change: 2019-06-16
     create: 2019-06-16
-    descrp: instantiate abstract class `Landscape` for artificial quadratic model
+    descrp: instantiate class `Quadratic` for toy model with constant hessian and covariance
 '''
 
 
@@ -26,9 +26,11 @@ class Quadratic(PointedLandscape):
             s.pow(0.5).diag()
         ).mm(v) 
 
-    def reset_weights(self):
+    def reset_weights(self, weights=None):
         self.weights = torch.autograd.Variable(
-            1.0 + torch.zeros(self.dim, dtype=torch.float, device=device),
+            1.0 + torch.zeros(self.dim, dtype=torch.float, device=device)
+            if weights is None else torch.Tensor(weights)
+            ,
             requires_grad=True
         )
 
@@ -43,6 +45,9 @@ class Quadratic(PointedLandscape):
     def update_weights(self, displacement):
         self.weights.data += displacement.detach().data
 
+    def get_weights(self):
+        return self.weights.detach().numpy()
+
     def nabla(self, scalar_stalk, create_graph=True):
         return torch.autograd.grad(
             scalar_stalk,
@@ -55,11 +60,11 @@ if __name__=='__main__':
     Q = Quadratic(dim=DIM)
 
     l = Q.get_loss_stalk(Q.sample_data(N)) 
-    print(CC+'loss @Y {:.2f}@W  expected @R {:.2f} @W '.format(l.item(), DIM / 2.0))
+    print(CC+'loss @Y {:.2f}@C  expected @R {:.2f} @C '.format(l.item(), DIM))
 
     gg = Q.nabla(l).pow(2).sum()
-    print(CC+'gg @Y {:.2f}@W  expected @R {:.2f} @W '.format(gg.item(), DIM*N/N**2))
+    print(CC+'gg @Y {:.2f}@C  expected @R {:.2f} @C '.format(gg.item(), DIM))
 
     ghhg = (0.5 * Q.nabla(gg)).pow(2).sum()
-    print(CC+'ghhg @Y {:.2f}@W  expected @R {:.2f} @W '.format(ghhg.item(), DIM*N/N**2))
+    print(CC+'ghhg @Y {:.2f}@C  expected @R {:.2f} @C '.format(ghhg.item(), DIM))
 
