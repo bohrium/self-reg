@@ -79,6 +79,6 @@ class Colorizer(object):
 CC = Colorizer()
 
 if __name__=='__main__':
-    print(CC + 'moo')
+    print(CC + '@Y moo')
     print(CC + '@R moo')
-    print(CC + 'hi @W moo' + 'cow')
+    print(CC + 'hi @M moo' + 'cow @C ')

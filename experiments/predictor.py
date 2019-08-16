@@ -35,16 +35,15 @@ def sgd_test_taylor(eta, T, degree):
     print(formula)
     Y, S = from_string(formula, eta, T)
     return Y, S
-def sgd_test_exponential(eta, T):
-    ''' TODO: 
-    '''
+def sgd_test_exponential(eta, T, degree):
     # TODO: correct error bars 
     cs = [sgd_test_coeffs[d] for d in range(3)]
-    rate = '(-2 * {} / {})'.format(cs[2], cs[1])
-    scale = '({} * {} / (2 * {}))'.format(cs[1], cs[1], cs[2])
-    offset = '({} - {} * {} / (2 * {}))'.format(cs[0], cs[1], cs[1], cs[2])
-    formula = '{} * np.exp(- {} * eta) + {}'.format(scale, rate, offset)
-    Y, S = from_string(formula, eta, T)
+    if degree==2:
+        rate = '(-2 * {} / {})'.format(cs[2], cs[1])
+        scale = '({} * {} / (2 * {}))'.format(cs[1], cs[1], cs[2])
+        offset = '({} - {} * {} / (2 * {}))'.format(cs[0], cs[1], cs[1], cs[2])
+        formula = '{} * np.exp(- {} * eta) + {}'.format(scale, rate, offset)
+        Y, S = from_string(formula, eta, T)
     return Y, S
 
 

@@ -1,14 +1,17 @@
 ''' author: samtenka
-    change: 2019-06-18
+    change: 2019-08-16
     create: 2019-02-14
     descrp: Compare and plot descent losses as dependent on learning rate.
-            Valid plotting modes are OUT-GD, OUT-SGD, OUT-DIFF, GEN-GD, GEN-SGD.
+            Valid plotting modes are
+                test-gd,  test-sgd,  test-gdc,  test-diff,  test-all
+                train-gd, train-sgd, train-gdc, train-diff, train-all
+                gen-gd,   gen-sgd,   gen-gdc,   gen-diff,   gen-all
             To run, type:
-                python vis.py experdata.txt gradstats.txt OUT-DIFF out-diff.png
-            The   experdata.txt   gives   a filename storing descent trajectory summaries;
-            the   gradstats.txt   gives   a filename storing gradient statistic estimates;
-            the        OUT-DIFF   gives   a plotting mode
-            the    out-diff.png   gives   a filename to write to 
+                python vis.py optimlogs.data gradstats.data test-DIFF out-diff.png
+            The   optimlogs.data   gives   a filename storing descent trajectory summaries;
+            the   gradstats.data   gives   a filename storing gradient statistic estimates;
+            the   test-DIFF         gives   a plotting mode
+            the   out-diff.png     gives   a filename to write to 
 '''
 
 from matplotlib import pyplot as plt
@@ -17,15 +20,48 @@ from predictor import sgd_test_taylor, sgd_test_exponential
 from optimlogs import OptimKey
 import sys 
 
-red  ='#cc4444'
-yellow='#888844'
-green='#44cc44'
-cyan='#448888'
-blue ='#4444cc'
+assert len(sys.argv)==1+4, '`visualize.py` needs 4 command line arguments'
+OPTIMLOGS_FILENM, GRADSTATS_FILENM, MODE, IMG_FILENM = sys.argv[1:] 
+
+def get_optimlogs(optimlogs_filenm, metric, optimizer):
+    with open(optimlogs_filenm) as f:
+        ol = eval(f.read())
+
+    X, Y, S = [], [], []
+    for okey in ol:
+        if okey.optimizer != optimizer: continue
+        if okey.metric != metric: continue
+        X.append(okey.eta)
+        Y.append(ol[okey]['mean'])
+        S.append(ol[okey]['stdv']/ol[okey]['nb_samples']**0.5)
+    X = np.array(X)
+    Y = np.array(Y)
+    S = np.array(S)
+
+    return (X,Y,S), okey 
+        
+    #--------------------------------------------------------------------------#
+    #               2.1 plotting primitives                                    #
+    #--------------------------------------------------------------------------#
+
+red    ='#cc4444'
+yellow ='#888844'
+green  ='#44cc44'
+cyan   ='#448888'
+blue   ='#4444cc'
 magenta='#884488'
 
-with open('ol.data') as f:
-    ol = eval(f.read())
+def prime_plot():
+    plt.clf()
+    plt.gca().spines['right'].set_visible(False)
+    plt.gca().spines['top'].set_visible(False)
+
+def finish_plot(title, xlabel, ylabel, img_filenm):
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.legend(loc='best')
+    plt.savefig(img_filenm, pad_inches=0.05, bbox_inches='tight')
 
 def plot_fill(x, y, s, color, label, z=1.96):
     ''' plot variance (s^2) around mean (y) via 2D shading around a curve '''
@@ -41,83 +77,56 @@ def plot_bars(x, y, s, color, label, z=1.96, bar_width=1.0/50):
     e = bar_width * (max(x)-min(x))
     for (xx, yy, ss) in zip(x, y, s):
         # middle, top, and bottom stroke of I, respectively:
-        plt.plot([xx  , xx  ], [yy-z*ss, yy+z*ss], color=color)
+        plt.plot([xx,   xx  ], [yy-z*ss, yy+z*ss], color=color)
         plt.plot([xx-e, xx+e], [yy-z*ss, yy-z*ss], color=color)
         plt.plot([xx-e, xx+e], [yy+z*ss, yy+z*ss], color=color)
     # connect to the figure legend:
     plt.plot([xx, xx], [yy-z*ss, yy+z*ss], color=color, label=label)
 
+def interpolate(x):
+    return np.arange(0.00, 1.01, 0.01)*(max(x)-min(x)) + min(x)
+
     #--------------------------------------------------------------------------#
     #               2.1 plot curves                                            #
     #--------------------------------------------------------------------------#
 
-#for opt in ('sgd',):#, 'gd'):
-#    X, Y, S = [], [], []
-#    for okey in ol:
-#        if okey.optimizer != opt: continue
-#        X.append(okey.eta)
-#        Y.append(ol[okey]['mean'])
-#        S.append(ol[okey]['stdv']/ol[okey]['nb_samples']**0.5)
-#    X = np.array(X)
-#    Y = np.array(Y)
-#    S = np.array(S)
-#    
-#    plot_bars(
-#        X,
-#        Y,
-#        S,
-#        color=blue if opt=='sgd' else red,
-#        label='experiment'
-#    )
-#
-#X = np.arange(0.00, 1.01, 0.01)*(max(X)-min(X)) + min(X)
-#Y, S = sgd_test_taylor(eta=X, T=100, degree=1) 
-#plot_fill(X, Y, S, color=red, label='theory (deg 1)')
-#Y, S = sgd_test_taylor(eta=X, T=100, degree=2) 
-#plot_fill(X, Y, S, color=yellow, label='theory (deg 2 poly)')
-#Y, S = sgd_test_exponential(eta=X, T=100)
-#plot_fill(X, Y, S, color=green, label='theory (deg 2 ode)')
+metric, optimizer = MODE.split('-') 
 
+def plot_SGD():
+    prime_plot()
 
-for opt in ('sgd', 'gd', 'gdc'):#, 'gd'):
-    X, Y, S = [], [], []
-    for okey in ol:
-        if okey.optimizer != opt: continue
-        X.append(okey.eta)
-        Y.append(ol[okey]['mean'])
-        S.append(ol[okey]['stdv']/ol[okey]['nb_samples']**0.5)
-    X = np.array(X)
-    Y = np.array(Y)
-    S = np.array(S)
+    (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, optimizer) 
+    plot_bars(X, Y, S, color=blue, label='experiment')
     
-    plot_bars(
-        X,
-        Y,
-        S,
-        color=cyan if opt=='sgd' else blue if opt=='gd' else magenta,
-        label=opt
+    X = interpolate(X)
+    Y, S = sgd_test_taylor(eta=X, T=okey.T, degree=1) 
+    plot_fill(X, Y, S, color=red, label='theory (deg 1)')
+    
+    Y, S = sgd_test_taylor(eta=X, T=okey.T, degree=2) 
+    plot_fill(X, Y, S, color=yellow, label='theory (deg 2 poly)')
+    
+    Y, S = sgd_test_exponential(eta=X, T=okey.T, degree=2)
+    plot_fill(X, Y, S, color=green, label='theory (deg 2 ode)')
+
+    finish_plot(
+        title='Prediction of SGD \n(test loss after 100 steps on mnist-10 logistic)'.format(
+            okey.T
+        ), xlabel='learning rate', ylabel='test loss', img_filenm=IMG_FILENM
     )
 
-#X = np.arange(0.00, 1.01, 0.01)*(max(X)-min(X)) + min(X)
-#Y, S = sgd_test_taylor(eta=X, T=100, degree=1) 
-#plot_fill(X, Y, S, color=red, label='theory (deg 1)')
-#Y, S = sgd_test_taylor(eta=X, T=100, degree=2) 
-#plot_fill(X, Y, S, color=yellow, label='theory (deg 2 poly)')
-#Y, S = sgd_test_exponential(eta=X, T=100)
-#plot_fill(X, Y, S, color=green, label='theory (deg 2 ode)')
+def plot_OPT(): 
+    prime_plot()
 
+    for opt, color in [('sgd', cyan), ('gd', blue), ('gdc', magenta)]:
+        (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, opt) 
+        plot_bars(X, Y, S, color=color, label='experiment')
 
+    finish_plot(
+        title='Comparison of Optimizers \n(test loss after {} steps on mnist-10 logistic)'.format(
+            okey.T
+        ), xlabel='learning rate', ylabel='test loss', img_filenm=IMG_FILENM
+    )
+ 
+plot_SGD()
+#plot_OPT()
 
-
-    #--------------------------------------------------------------------------#
-    #               2.2 label and save figures                                 #
-    #--------------------------------------------------------------------------#
-
-#plt.title('SGD Test (mnist logistic landscape)')
-plt.title('Optimizers Test (mnist logistic landscape)')
-plt.xlabel('learning rate')
-plt.ylabel('test loss')
-plt.gca().spines['right'].set_visible(False)
-plt.gca().spines['top'].set_visible(False)
-plt.legend(loc='best')
-plt.savefig('plot.png', pad_inches=0.05, bbox_inches='tight')
