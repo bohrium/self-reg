@@ -52,31 +52,26 @@ if __name__=='__main__':
     TRAIN = 2
     TESTB = 10000
 
-    ML = Tempter(50.0)
+    ML = Tempter(5.0)
     LRATE = 1e-2
 
     D = ML.sample_data(N=TRAIN)
-    for i in range(500):
-        L = ML.get_loss_stalk(D[(i%TRAIN):(i%TRAIN)+1])
+    for i in range(1000):
+        #L = ML.get_loss_stalk(D[(i%TRAIN):(i%TRAIN)+1])
+        # gradient descent:
+        L = ML.get_loss_stalk(D)
         G = ML.nabla(L)
         ML.update_weights(-LRATE * G)
 
-        if (i+1)%50: continue
+        if (i+1)%100: continue
 
         La, Lb, Lc = (ML.get_loss_stalk(ML.sample_data(N=TESTB)) for i in range(3))
         Ga, Gb, Gc = (ML.nabla(Lx) for Lx in (La, Lb, Lc))
         GaGa, GaGb = (torch.dot(Ga, Gx) for Gx in (Ga, Gb)) 
-        #C = (GaGa-GaGb) * TESTB**2 / (TESTB-1.0) 
-        #GaHcGa, GaHcGb = (
-        #    torch.dot(Gx, ML.nabla(torch.dot(Gc, Gy.detach())))
-        #    for Gx, Gy in ((Ga, Ga), (Ga, Gb)) 
-        #)
-        #CH = (GaHcGa-GaHcGb) * TESTB**2 / (TESTB-1.0) 
+        C = (GaGa-GaGb) * TESTB**2
         print(CC+' @C \t'.join([
             'after {:4d} steps'.format(i+1),
             'batch loss @B {:.2f}'.format(L.detach().numpy()),
-            'test loss @B {:.2f}'.format(La.detach().numpy()),
-            'grad mag2 @G {:+.1e}'.format(GaGb.detach().numpy()),
-            #'trace cov @Y {:+.1e}'.format(C.detach().numpy()),
-            #'cov hess @R {:+.1e}'.format(CH.detach().numpy()),
+            'test loss @G {:.2f}'.format(La.detach().numpy()),
+            'trace cov @Y {:+.1e}'.format(C.detach().numpy()),
         '']))

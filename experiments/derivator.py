@@ -64,7 +64,7 @@ def compute_grad_stats(land, N, I=1):
 if __name__ == '__main__':
 
     from mnist_landscapes import MnistLogistic
-    LC = MnistLogistic(digits=[0,1])
+    LC = MnistLogistic(digits=list(range(10)))
     #from quad_landscapes import Quadratic
     #LC = Quadratic(dim=12)
 

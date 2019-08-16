@@ -7,7 +7,7 @@
                 train-gd, train-sgd, train-gdc, train-diff, train-all
                 gen-gd,   gen-sgd,   gen-gdc,   gen-diff,   gen-all
             To run, type:
-                python vis.py optimlogs.data gradstats.data test-DIFF out-diff.png
+                python visualize.py ol.data gs.data test-sgd out.png
             The   optimlogs.data   gives   a filename storing descent trajectory summaries;
             the   gradstats.data   gives   a filename storing gradient statistic estimates;
             the   test-DIFF         gives   a plotting mode
@@ -23,7 +23,10 @@ import sys
 assert len(sys.argv)==1+4, '`visualize.py` needs 4 command line arguments'
 OPTIMLOGS_FILENM, GRADSTATS_FILENM, MODE, IMG_FILENM = sys.argv[1:] 
 
-def get_optimlogs(optimlogs_filenm, metric, optimizer):
+with open(GRADSTATS_FILENM) as f:
+    gradstats = eval(f.read())
+
+def get_optimlogs(optimlogs_filenm, metric, optimizer, beta):
     with open(optimlogs_filenm) as f:
         ol = eval(f.read())
 
@@ -31,6 +34,7 @@ def get_optimlogs(optimlogs_filenm, metric, optimizer):
     for okey in ol:
         if okey.optimizer != optimizer: continue
         if okey.metric != metric: continue
+        if okey.beta != beta: continue
         X.append(okey.eta)
         Y.append(ol[okey]['mean'])
         S.append(ol[okey]['stdv']/ol[okey]['nb_samples']**0.5)
@@ -45,11 +49,11 @@ def get_optimlogs(optimlogs_filenm, metric, optimizer):
     #--------------------------------------------------------------------------#
 
 red    ='#cc4444'
-yellow ='#888844'
+yellow ='#aaaa44'
 green  ='#44cc44'
-cyan   ='#448888'
+cyan   ='#44aaaa'
 blue   ='#4444cc'
-magenta='#884488'
+magenta='#aa44aa'
 
 def prime_plot():
     plt.clf()
@@ -73,13 +77,13 @@ def plot_fill(x, y, s, color, label, z=1.96):
     )
 
 def plot_bars(x, y, s, color, label, z=1.96, bar_width=1.0/50): 
-    ''' plot variance (s^2) around mean (y) via I-bars around a scatter plot '''
+    ''' plot variance (s^2) around mean (y) via S-bars around a scatter plot '''
     e = bar_width * (max(x)-min(x))
     for (xx, yy, ss) in zip(x, y, s):
         # middle, top, and bottom stroke of I, respectively:
         plt.plot([xx,   xx  ], [yy-z*ss, yy+z*ss], color=color)
-        plt.plot([xx-e, xx+e], [yy-z*ss, yy-z*ss], color=color)
-        plt.plot([xx-e, xx+e], [yy+z*ss, yy+z*ss], color=color)
+        plt.plot([xx-e, xx+0], [yy-z*ss, yy-z*ss], color=color)
+        plt.plot([xx-0, xx+e], [yy+z*ss, yy+z*ss], color=color)
     # connect to the figure legend:
     plt.plot([xx, xx], [yy-z*ss, yy+z*ss], color=color, label=label)
 
@@ -95,17 +99,17 @@ metric, optimizer = MODE.split('-')
 def plot_SGD():
     prime_plot()
 
-    (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, optimizer) 
+    (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, optimizer, beta=0.0) 
     plot_bars(X, Y, S, color=blue, label='experiment')
     
     X = interpolate(X)
-    Y, S = sgd_test_taylor(eta=X, T=okey.T, degree=1) 
+    Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=1) 
     plot_fill(X, Y, S, color=red, label='theory (deg 1)')
     
-    Y, S = sgd_test_taylor(eta=X, T=okey.T, degree=2) 
+    Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=2) 
     plot_fill(X, Y, S, color=yellow, label='theory (deg 2 poly)')
     
-    Y, S = sgd_test_exponential(eta=X, T=okey.T, degree=2)
+    Y, S = sgd_test_exponential(gradstats, eta=X, T=okey.T, degree=2)
     plot_fill(X, Y, S, color=green, label='theory (deg 2 ode)')
 
     finish_plot(
@@ -114,19 +118,37 @@ def plot_SGD():
         ), xlabel='learning rate', ylabel='test loss', img_filenm=IMG_FILENM
     )
 
+
 def plot_OPT(): 
     prime_plot()
 
-    for opt, color in [('sgd', cyan), ('gd', blue), ('gdc', magenta)]:
-        (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, opt) 
-        plot_bars(X, Y, S, color=color, label='experiment')
+    for opt, beta, color in [('sgd', 0.0, cyan), ('gd', 0.0, blue), ('gdc', 0.01, magenta)]:
+        (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, opt, beta) 
+        plot_bars(X, Y, S, color=color, label=opt)
 
     finish_plot(
-        title='Comparison of Optimizers \n(test loss after {} steps on mnist-10 logistic)'.format(
+        title='Comparison of Optimizers \n({} after {} steps on mnist-10 logistic)'.format(
+            metric,
             okey.T
-        ), xlabel='learning rate', ylabel='test loss', img_filenm=IMG_FILENM
+        ), xlabel='learning rate', ylabel=metric, img_filenm=IMG_FILENM
+    )
+
+def plot_BETA(): 
+    prime_plot()
+
+    for beta, color in [(10**-3.0, green), (10**-2.5, cyan), (10**-2.0, blue), (10**-1.5, magenta), (10**-1.0, red)]:
+        (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, 'gdc', beta) 
+        plot_fill(X, Y, S, color=color, label='gdc 10**{}'.format(round(np.log(beta)/np.log(10.0), 1)))
+
+    finish_plot(
+        title='Comparison of Optimizers \n({} after {} steps on mnist-10 logistic)'.format(
+            metric,
+            okey.T
+        ), xlabel='learning rate', ylabel=metric, img_filenm=IMG_FILENM
     )
  
-plot_SGD()
+ 
+#plot_SGD()
 #plot_OPT()
+plot_BETA()
 

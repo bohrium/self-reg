@@ -30,7 +30,9 @@ def compute_losses(land, eta, T, N, I=1):
             grad = land.nabla(loss_stalk, False).detach()
             land.update_weights(-eta*grad)
         sgd_test_loss = land.get_loss_stalk(D_test)
-        ol.accum(OptimKey(optimizer='sgd', eta=eta, N=N, T=T, metric='test'), sgd_test_loss)
+        ol.accum(OptimKey(optimizer='sgd', beta=0.0, eta=eta, N=N, T=T, metric='test'), sgd_test_loss)
+        sgd_test_acc = land.get_accuracy(D_test)
+        ol.accum(OptimKey(optimizer='sgd', beta=0.0, eta=eta, N=N, T=T, metric='testacc'), sgd_test_acc)
 
         # GD:
         land.reset_weights(w0)
@@ -39,35 +41,41 @@ def compute_losses(land, eta, T, N, I=1):
             grad = land.nabla(loss_stalk, False).detach()
             land.update_weights(-eta*grad)
         gd_test_loss = land.get_loss_stalk(D_test)
-        ol.accum(OptimKey(optimizer='gd', eta=eta, N=N, T=T, metric='test'), gd_test_loss)
+        ol.accum(OptimKey(optimizer='gd', beta=0.0, eta=eta, N=N, T=T, metric='test'), gd_test_loss)
+        gd_test_acc = land.get_accuracy(D_test)
+        ol.accum(OptimKey(optimizer='gd', beta=0.0, eta=eta, N=N, T=T, metric='testacc'), gd_test_acc)
+
 
         # GDC:
-        land.reset_weights(w0)
-        for t in range(T):
-            gradA = land.nabla(land.get_loss_stalk(D_train[:int(N//2)]))
-            gradB = land.nabla(land.get_loss_stalk(D_train[int(N//2):]))
-            traceC = gradA.dot(gradA-gradB) * (N*N/4)  
-            grad = ((gradA + gradB)/2).detach()
-            grad_traceC = land.nabla(traceC, False).detach() 
-            land.update_weights(-eta*( grad + 0.01 * grad_traceC ))
-        gdc_test_loss = land.get_loss_stalk(D_test)
-        ol.accum(OptimKey(optimizer='gdc', eta=eta, N=N, T=T, metric='test'), gdc_test_loss)
+        for BETA in [10**-3.0, 10**-2.5, 10**-2.0, 10**-1.5, 10**-1]:
+            land.reset_weights(w0)
+            for t in range(T):
+                gradA = land.nabla(land.get_loss_stalk(D_train[:int(N//2)]))
+                gradB = land.nabla(land.get_loss_stalk(D_train[int(N//2):]))
+                traceC = gradA.dot(gradA-gradB) * (N*N/4)  
+                grad = ((gradA + gradB)/2).detach()
+                grad_traceC = land.nabla(traceC, False).detach() 
+                land.update_weights(-eta*( grad + BETA * grad_traceC ))
+            gdc_test_loss = land.get_loss_stalk(D_test)
+            ol.accum(OptimKey(optimizer='gdc', beta=BETA, eta=eta, N=N, T=T, metric='test'), gdc_test_loss)
+            gdc_test_acc = land.get_accuracy(D_test)
+            ol.accum(OptimKey(optimizer='gdc', beta=BETA, eta=eta, N=N, T=T, metric='testacc'), gdc_test_acc)
 
         # differences: 
-        ol.accum(OptimKey(optimizer='diff', eta=eta, N=N, T=T, metric='test'), gd_test_loss-sgd_test_loss)
-        ol.accum(OptimKey(optimizer='diffc', eta=eta, N=N, T=T, metric='test'), gdc_test_loss-sgd_test_loss)
+        ol.accum(OptimKey(optimizer='diff', beta=0.0, eta=eta, N=N, T=T, metric='test'), gd_test_loss-sgd_test_loss)
+        #ol.accum(OptimKey(optimizer='diffc', eta=eta, N=N, T=T, metric='test'), gdc_test_loss-sgd_test_loss)
 
     return ol
 
 if __name__=='__main__':
-    LC = MnistLogistic(digits=[0,1])
+    LC = MnistLogistic(digits=list(range(10)))
     #from quad_landscapes import Quadratic
     #LC = Quadratic(dim=12)
 
     ol = OptimLog()
-    for eta in tqdm.tqdm(np.arange(0.0, 0.21, 0.04)):
+    for eta in tqdm.tqdm(np.arange(0.0, 1.01, 0.20)):
         for T in [100]:
-            ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(15000.0/(T+1))))
+            ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(3000.0/(T+1))))
     print(ol)
     with open('ol.data', 'w') as f:
         f.write(str(ol))

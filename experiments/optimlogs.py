@@ -9,7 +9,7 @@ import numpy as np
 from utils import CC
 import torch
 
-OptimKey = namedtuple('OptimKey', ('optimizer', 'eta', 'T', 'N', 'metric')) 
+OptimKey = namedtuple('OptimKey', ('optimizer', 'eta', 'T', 'N', 'metric', 'beta')) 
 
 class OptimLog(object):
     def __init__(self):

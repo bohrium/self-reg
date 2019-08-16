@@ -96,6 +96,15 @@ class MnistAbstractArchitecture(MNIST):
             create_graph=create_graph,
         )[0] 
 
+    def get_loss_stalk(self, data_indices):
+        logits, labels = self.logits_and_labels(data_indices)
+        return nll_loss(logits, labels)
+
+    def get_accuracy(self, data_indices):
+        logits, labels = self.logits_and_labels(data_indices)
+        _, argmax = logits.max(1) 
+        return argmax.eq(labels).sum() / labels.shape[0]
+
 class MnistLogistic(MnistAbstractArchitecture):
     def __init__(self, digits=list(range(10)), weight_scale=0.01):
         super().__init__(digits, weight_scale)
@@ -104,14 +113,22 @@ class MnistLogistic(MnistAbstractArchitecture):
             (self.nb_classes , 1            )
         ]
         self.reset_weights()
-    def get_loss_stalk(self, data_indices):
+
+    def logits_and_labels(self, data_indices):
         x, y = self.imgs[data_indices], self.lbls[data_indices]
         x = x.view(-1, 28*28, 1)
         x = matmul(self.get_subweight(0), x) + self.get_subweight(1).unsqueeze(0)
         x = x.view(-1, self.nb_classes)
-        logits = log_softmax(x, dim=1)
-        loss = nll_loss(logits, y)
-        return loss
+        return log_softmax(x, dim=1), y
+
+    def get_loss_stalk(self, data_indices):
+        logits, labels = self.logits_and_labels(data_indices)
+        return nll_loss(logits, labels)
+
+    def get_accuracy(self, data_indices):
+        logits, labels = self.logits_and_labels(data_indices)
+        _, argmax = logits.max(1) 
+        return argmax.eq(labels).double().mean()
 
 class MnistLeNet(MnistAbstractArchitecture):
     def __init__(self, digits=list(range(10)), weight_scale=1.0):
@@ -123,7 +140,8 @@ class MnistLeNet(MnistAbstractArchitecture):
             (self.nb_classes , 16           ),      #(self.nb_classes,)
         ]
         self.reset_weights()
-    def get_loss_stalk(self, data_indices):
+
+    def logits_and_labels(self, data_indices):
         x, y = self.imgs[data_indices], self.lbls[data_indices]
         x = tanh(conv2d(x, self.get_subweight(0), bias=None, stride=2))
         x = tanh(conv2d(x, self.get_subweight(1), bias=None, stride=2))
@@ -132,9 +150,16 @@ class MnistLeNet(MnistAbstractArchitecture):
         x = matmul(self.get_subweight(3), x)
         x = x.view(-1, self.nb_classes)
         logits = log_softmax(x, dim=1)
-        loss = nll_loss(logits, y)
-        return loss
+        return logits, y
 
+    def get_loss_stalk(self, data_indices):
+        logits, labels = self.logits_and_labels(data_indices)
+        return nll_loss(logits, labels)
+
+    def get_accuracy(self, data_indices):
+        logits, labels = self.logits_and_labels(data_indices)
+        _, argmax = logits.max(1) 
+        return argmax.eq(labels).double().mean()
 
 
     #--------------------------------------------------------------------------#
@@ -148,7 +173,7 @@ if __name__=='__main__':
     #LRATE = 1e-0
 
     ML = MnistLogistic(digits=list(range(10))) 
-    LRATE = 3e-1
+    LRATE = 1e-0
 
     for i in range(1000):
         D = ML.sample_data(N=BATCH)
@@ -159,6 +184,7 @@ if __name__=='__main__':
         if (i+1)%100: continue
 
         La, Lb, Lc = (ML.get_loss_stalk(ML.sample_data(N=BATCH)) for i in range(3))
+        acc = ML.get_accuracy(ML.sample_data(N=BATCH))
         Ga, Gb, Gc = (ML.nabla(Lx) for Lx in (La, Lb, Lc))
         GaGa, GaGb = (torch.dot(Ga, Gx) for Gx in (Ga, Gb)) 
         C = (GaGa-GaGb) * BATCH**2 / (BATCH-1.0) 
@@ -170,6 +196,8 @@ if __name__=='__main__':
         print(CC+' @C \t'.join([
             'after {:4d} steps'.format(i+1),
             'batch loss @B {:.2f}'.format(L.detach().numpy()),
+            'test loss @B {:.2f}'.format(La.detach().numpy()),
+            'test acc @B {:.2f}'.format(acc.detach().numpy()),
             'grad mag2 @G {:+.1e}'.format(GaGb.detach().numpy()),
             'trace cov @Y {:+.1e}'.format(C.detach().numpy()),
             'cov hess @R {:+.1e}'.format(CH.detach().numpy()),
