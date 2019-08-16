@@ -129,8 +129,9 @@ def sum_squares(exprs):
         return ['MUL', exprs[0], exprs[0]] 
     else:
         return ['ADD', sum_squares(exprs[0:1]), sum_squares(exprs[1:])]
-def solve(exprs, tolerance = 1e-10, eta = 0.01, tries=100, steps_per_try=1000): 
-    expr = sum_squares(exprs)
+
+def solve(constraints, tolerance = 1e-12, eta = 0.01, init_noise=1.0, drift_noise=1.0, tries=100, steps_per_try=1000): 
+    expr = sum_squares([['SUB', left, right] for (left, right) in constraints])
     fvs = free_vars(expr)
     partials = {v:partial(expr, v) for v in fvs}
 
@@ -138,7 +139,7 @@ def solve(exprs, tolerance = 1e-10, eta = 0.01, tries=100, steps_per_try=1000):
     best_assignments = None
     
     for i in range(tries):
-        assignments = {v:np.random.randn() for v in fvs}
+        assignments = {v: init_noise*np.random.randn() for v in fvs}
         for j in range(steps_per_try):
             val = evaluate(expr, assignments) 
 
@@ -147,7 +148,7 @@ def solve(exprs, tolerance = 1e-10, eta = 0.01, tries=100, steps_per_try=1000):
             if newval <= val:
                 val, assignments = newval, new_assignments
 
-            new_assignments = {v: assignments[v] - np.random.randn() for v in fvs} 
+            new_assignments = {v: assignments[v] - drift_noise*np.random.randn() for v in fvs} 
             newval = evaluate(expr, new_assignments) 
             if newval <= val:
                 val, assignments = newval, new_assignments
@@ -164,20 +165,20 @@ if __name__=='__main__':
     print('hello! i can help you solve systems of equations!')
     print('please enter some equations (with uppercase variable names)')
     print('enter `exit` to exit, `solve` to solve, `print` to show the system so far, or `clear` to clear the system')
-    expressions = [] 
+    constraints = [] 
     while True:
         command = input('>> ')
         if command=='exit':
             exit()
         elif command=='solve':
-            a, v = solve(expressions)
-            print('    '+'  '.join('\033[35m{}\033[36m=\033[33m{:.5f}\033[36m'.format(v, a[v]) for v in a))
+            a, v = solve(constraints)
+            print('    '+'  '.join('\033[33m{}\033[36m=\033[35m{:.5f}\033[36m'.format(v, a[v]) for v in a))
             print('    accurate to \033[32m{:.5f}\033[36m'.format(v**0.5))
         elif command=='clear':
             expressions = []
         elif command=='print':
-            for expr in expressions:
-                print('\033[35m{}\033[36m'.format(string_from(expr)))
+            for left, right in constraints:
+                print('\033[33m{}\033[36m=\033[33m{}\033[36m'.format(string_from(left), string_from(right)))
         else:
             left, right = command.split('=') 
-            expressions.append(['SUB', Parser(left).get_tree(), Parser(right).get_tree()])
+            constraints.append((Parser(left).get_tree(), Parser(right).get_tree()))
