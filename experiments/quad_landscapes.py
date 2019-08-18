@@ -18,7 +18,9 @@ class Quadratic(PointedLandscape):
     def __init__(self, dim, hessian=None, covariance=None):
         self.dim = dim
         self.reset_weights()
-        self.hessian    = hessian    if hessian    is not None else torch.eye(dim)
+        self.hessian    = torch.autograd.Variable(
+            hessian    if hessian    is not None else torch.eye(dim)
+        )
         self.covariance = covariance if covariance is not None else torch.eye(dim)
 
         u, s, v = torch.svd(self.covariance)
@@ -40,7 +42,8 @@ class Quadratic(PointedLandscape):
     def get_loss_stalk(self, data):
         diff = data - (self.weights.unsqueeze(dim=0))
         diff2 = diff.t().mm(diff) 
-        return 0.5 * diff2.mul(self.hessian).sum() / data.shape[0]
+        loss = 0.5 * diff2.mul(self.hessian).mean()
+        return loss + 0.0 * torch.exp(loss)
 
     def update_weights(self, displacement):
         self.weights.data += displacement.detach().data
@@ -53,7 +56,14 @@ class Quadratic(PointedLandscape):
             scalar_stalk,
             self.weights,
             create_graph=create_graph,
-        )[0] 
+            #allow_unused=True
+        )[0]
+        #return torch.autograd.Variable(torch.autograd.grad(
+        #    scalar_stalk,
+        #    self.weights,
+        #    create_graph=create_graph,
+        #    #allow_unused=True
+        #)[0], requires_grad=True)
 
 if __name__=='__main__':
     DIM, N = 36, 196

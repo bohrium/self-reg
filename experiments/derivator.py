@@ -18,6 +18,7 @@ def compute_grad_stats(land, N, I=1):
         land.reset_weights()
         A, B, C, D = (
             land.get_loss_stalk(land.sample_data(N))
+            #land.weights.pow(2).sum()
             for i in range(4)
         )
         
@@ -26,7 +27,7 @@ def compute_grad_stats(land, N, I=1):
             for X in (A, B, C, D)
         )
         GA_, GB_, GC_, GD_ = (
-            torch.tensor(Gi.detach().numpy())
+            torch.Tensor(Gi.detach().numpy())
             for Gi in (GA, GB, GC, GD)
         )
 
@@ -64,20 +65,23 @@ def compute_grad_stats(land, N, I=1):
         ))
 
         #
-        # TODO: figure out why 3rd order computations complain:
+        # -T-O-D-O-: figure out why 3rd order computations complain:
         #   RuntimeError: element 0 of tensors does not require grad and does not have a grad_fn
         # --- something to do with `detach`?
+        # FIXED!
 
         gs.accum('(0-1-2-3)(01-02-03)', (
             land.nabla(land.nabla(GA.dot(GB_)).dot(GC_)).dot(GD)
         ))
-        gs.accum('(0-1-2-3)(01-02-13)', (
-            land.nabla(GA.dot(land.nabla(GB.dot(GD.detach())).detach())).dot(GC)
-        ))
-        gs.accum('(0-1-23)(01-02-03)', (
-            land.nabla(land.nabla(GA.dot(GB.detach())).dot(GC.detach())).dot(GC.detach()) * N
-            + gs.recent('(0-1-2-3)(01-02-03)') * (1.0-N)
-        ))
+
+        #gs.accum('(0-1-2-3)(01-02-13)', (
+        #    land.nabla(GA.dot(land.nabla(GB.dot(GD.detach())).detach())).dot(GC)
+        #))
+        #gs.accum('(0-1-23)(01-02-03)', (
+        #    land.nabla(land.nabla(GA.dot(GB.detach())).dot(GC.detach())).dot(GC.detach()) * N
+        #    + gs.recent('(0-1-2-3)(01-02-03)') * (1.0-N)
+        #))
+
         #gs.accum('(0-1-23)(01-02-13)', (
         #))
         #gs.accum('(0-1-23)(01-02-23)', (
@@ -125,8 +129,9 @@ if __name__ == '__main__':
     from quad_landscapes import Quadratic
 
     DIM = 8
-    hessian = torch.eye(DIM) 
-    hessian[:int(DIM/2)] *= 2
+    #hessian = torch.eye(DIM) 
+    #hessian[:int(DIM/2)] *= 2
+    hessian=None
     Q = Quadratic(dim=DIM, hessian=hessian)
     grad_stats = str(compute_grad_stats(Q, N=30, I=1000))
     #with open('gs.data', 'w') as f:
@@ -145,7 +150,7 @@ if __name__ == '__main__':
                 '(0-12)(01-12)': DIM/2 * (9.0),
                 '(012)(01-02)': DIM/2 * (9.0 + 9.0),
                 '(0-1-2-3)(01-02-03)': 0.0,
-                '(0-1-2-3)(01-02-13)': 0.0,
-                '(0-1-23)(01-02-03)': 0.0,
+                #'(0-1-2-3)(01-02-13)': 0.0,
+                #'(0-1-23)(01-02-03)': 0.0,
             }[name]),
         '']))
