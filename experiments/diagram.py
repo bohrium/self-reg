@@ -29,27 +29,27 @@ def get_all_trees(nb_nodes):
 
 def name_of_diagram(partition, tree):
     return '(%s)(%s)' % (
-        '-'.join(''.join(str(s) for s in p) for p in partition),
-        '-'.join(''.join(str(s) for s in g) for g in tree)
+        '-'.join(''.join(str(s) for s in g) for g in tree),
+        '-'.join(''.join(str(s) for s in p) for p in partition)
     )
 
 def canonical_form(nb_nodes, partition, tree):
     return min(
         (
-            tuple(sorted(tuple(sorted(p[el] for el in part)) for part in partition)), 
-            tuple(sorted(tuple(sorted(p[el] for el in edge)) for edge in tree))
+            tuple(sorted(tuple(sorted(p[el] for el in edge)) for edge in tree)),
+            tuple(sorted(tuple(sorted(p[el] for el in part)) for part in partition))
         )
         for p in perm(range(nb_nodes))
     )
     
 def get_diagrams(nb_nodes): 
     rtrn = set()
-    for partition in get_all_partitions(nb_nodes):
-        for tree in get_all_trees(nb_nodes):
+    for tree in get_all_trees(nb_nodes):
+        for partition in get_all_partitions(nb_nodes):
             rtrn.add(canonical_form(nb_nodes, partition, tree))
     return sorted(rtrn)
 
 for nb_nodes in range(1, 5):
-    for partition, tree in get_diagrams(nb_nodes):
+    for tree, partition in get_diagrams(nb_nodes):
         print(name_of_diagram(partition, tree))
  

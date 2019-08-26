@@ -22,9 +22,9 @@ def from_string(gradstats, formula, eta, T):
     return (eval(form, {'eta':eta, 'T':T, 'gradstats':gradstats, 'np':np}) for form in (Y, S))
 
 sgd_test_coeffs = (
-    '(+ ((0)()))',
-    '(- (T*(0-1)(01)))',
-    '(+ ((T*(T-1)/2.0)*2*(0-1-2)(01-02) + T*0.5*(0-12)(01-02)))',
+    '(+ (()(0)))',
+    '(- (T*(01)(0-1)))',
+    '(+ ((T*(T-1)/2.0)*2*(01-02)(0-1-2) + T*0.5*(01-02)(0-12)))',
 )
 def sgd_test_taylor(gradstats, eta, T, degree):
     assert 1 <= degree, 'need strictly positive degree of approximation!'
