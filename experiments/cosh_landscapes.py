@@ -60,7 +60,6 @@ if __name__=='__main__':
     trcov = (grads[0] - grads[1]).pow(2).sum() * N/2
     tr_hc = (grads[0] - grads[1]).dot(Q.nabla(grads[2].dot((grads[0] - grads[1]).detach()))) * N/2
 
-    A, B, C, D = 1, 1, 1, 1
     ep = np.exp(1)
     em = np.exp(-1)
     print(CC+' @C '.join([
