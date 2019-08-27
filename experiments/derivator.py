@@ -313,16 +313,16 @@ def test_derivator_on_quad():
 
 if __name__ == '__main__':
 
-    #from mnist_landscapes import MnistLogistic
-    #LC = MnistLogistic(digits=list(range(10)))
-    ##from quad_landscapes import Quadratic
-    ##LC = Quadratic(dim=12)
+    from mnist_landscapes import MnistLogistic
+    LC = MnistLogistic(digits=list(range(10)))
+    #from quad_landscapes import Quadratic
+    #LC = Quadratic(dim=12)
 
-    #grad_stats = str(compute_grad_stats(LC, N=10, I=10000))
-    #with open('gs.data', 'w') as f:
-    #    f.write(grad_stats)
+    grad_stats = str(compute_grad_stats(LC, N=10, I=10000))
+    with open('gs.data', 'w') as f:
+        f.write(grad_stats)
 
 
-    test_derivator_on_cosh()
-    test_derivator_on_quad()
+    #test_derivator_on_cosh()
+    #test_derivator_on_quad()
 

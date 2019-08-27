@@ -1,12 +1,32 @@
 ''' author: samtenka
-    change: 2018-08-16
+    change: 2018-08-26
     create: 2018-08-16
     descrp: (approximately) solve a system of rational equations in several variables  
 '''
 
+from utils import CC
 import numpy as np
 
 expr_types = {'ATOM', 'EXP', 'MUL', 'DIV', 'ADD', 'SUB'}
+
+def partial(expression, varname): 
+    etype, A, B = expression[0], expression[1], expression[2] if len(expression)==3 else None 
+    return {
+        'ATOM': (lambda: ['ATOM', 1.0 if A==varname else 0.0]),
+        'EXP': (lambda: ['MUL', partial(A, varname), expression]),
+        'MUL': (lambda: [
+            'ADD',
+                ['MUL', partial(A, varname), B],
+                ['MUL', A, partial(B, varname)]
+        ]),
+        'DIV': (lambda: [
+            'ADD',
+                ['DIV', partial(A, varname), B],
+                ['MUL', ['ATOM', -1.0], ['DIV', ['MUL', A, partial(B, varname)], ['MUL', B, B]]]
+        ]),
+        'ADD': (lambda: ['ADD', partial(A, varname), partial(B, varname)]),
+        'SUB': (lambda: ['SUB', partial(A, varname), partial(B, varname)])
+    }[etype]()
 
 class Parser:
     def __init__(self, string):
@@ -39,6 +59,17 @@ class Parser:
             self.match('(')
             tree = self.get_expression()
             self.match(')')
+        elif self.peek()=='-':
+            self.match('-')
+            factor = self.get_factor()
+            tree = ['SUB', ['ATOM', 0.0], factor]
+        elif self.peek()=='d':
+            self.match('d_')
+            direction = self.get_identifier()[1] 
+            self.match('(')
+            expression = self.get_expression()
+            self.match(')')
+            tree = partial(expression, direction)
         elif self.peek()=='e':
             self.match('exp')
             self.match('(')
@@ -103,25 +134,6 @@ def free_vars(expression):
     else:
         return free_vars(A).union(free_vars(B))
 
-def partial(expression, varname): 
-    etype, A, B = expression[0], expression[1], expression[2] if len(expression)==3 else None 
-    return {
-        'ATOM': (lambda: ['ATOM', 1.0 if A==varname else 0.0]),
-        'EXP': (lambda: ['MUL', partial(A, varname), A]),
-        'MUL': (lambda: [
-            'ADD',
-                ['MUL', partial(A, varname), B],
-                ['MUL', A, partial(B, varname)]
-        ]),
-        'DIV': (lambda: [
-            'ADD',
-                ['DIV', partial(A, varname), B],
-                ['MUL', ['ATOM', -1.0], ['DIV', ['MUL', A, partial(B, varname)], ['MUL', B, B]]]
-        ]),
-        'ADD': (lambda: ['ADD', partial(A, varname), partial(B, varname)]),
-        'SUB': (lambda: ['SUB', partial(A, varname), partial(B, varname)])
-    }[etype]()
-
 def sum_squares(exprs):
     if len(exprs)==0:
         return ['ATOM', 0.0]
@@ -130,7 +142,7 @@ def sum_squares(exprs):
     else:
         return ['ADD', sum_squares(exprs[0:1]), sum_squares(exprs[1:])]
 
-def solve(constraints, tolerance = 1e-12, eta = 0.01, init_noise=1.0, drift_noise=1.0, tries=100, steps_per_try=1000): 
+def solve(constraints, tolerance = 1e-12, eta = 0.01, init_noise=0.0, drift_noise=1.0, tries=100, steps_per_try=1000): 
     expr = sum_squares([['SUB', left, right] for (left, right) in constraints])
     fvs = free_vars(expr)
     partials = {v:partial(expr, v) for v in fvs}
@@ -161,24 +173,46 @@ def solve(constraints, tolerance = 1e-12, eta = 0.01, init_noise=1.0, drift_nois
 
     return best_assignments, best_val
 
-if __name__=='__main__':
-    print('hello! i can help you solve systems of equations!')
-    print('please enter some equations (with uppercase variable names)')
-    print('enter `exit` to exit, `solve` to solve, `print` to show the system so far, or `clear` to clear the system')
+def interactive(): 
+    print()
+    print(CC + 'hello! i can help you solve systems of equations!')
+    print(CC + 'please enter some equations (with uppercase variable names)')
+    print(CC + 'for example, try entering @M A*A = A+1@C  and @M A=B*B@C ')
+    print(CC + 'enter `@Y exit@C ` to exit, `@Y solve@C ` to solve, `@Y print@C ` to show the system so far, or `@Y clear@C ` to clear the system')
     constraints = [] 
     while True:
         command = input('>> ')
-        if command=='exit':
+        if command=='':
+            pass
+        elif command=='exit':
             exit()
         elif command=='solve':
-            a, v = solve(constraints)
-            print('    '+'  '.join('\033[33m{}\033[36m=\033[35m{:.5f}\033[36m'.format(v, a[v]) for v in a))
-            print('    accurate to \033[32m{:.5f}\033[36m'.format(v**0.5))
+            a, val = solve(constraints)
+            print(CC + '    '+'  '.join('@M {}@C =@G {:.7f}@C '.format(v, a[v]) for v in a))
+            print(CC + '    accurate to @R {:.7f}@C '.format(val**0.5))
         elif command=='clear':
-            expressions = []
+            constraints = []
         elif command=='print':
             for left, right in constraints:
-                print('\033[33m{}\033[36m=\033[33m{}\033[36m'.format(string_from(left), string_from(right)))
+                print(CC + '@M {}@C =@M {}@C '.format(string_from(left), string_from(right)))
         else:
-            left, right = command.split('=') 
-            constraints.append((Parser(left).get_tree(), Parser(right).get_tree()))
+            try:
+                left, right = command.split('=') 
+                constraints.append((Parser(left).get_tree(), Parser(right).get_tree()))
+            except ValueError:
+                print(CC + '@R uh oh! I did not understand that equation@C ')
+
+def solve_from_strings(system):
+    ''' `system` is a list of strings '''
+    handsides = [equation.split('=') for equation in system] 
+    constraints = [((Parser(left).get_tree(), Parser(right).get_tree())) for left,right in handsides]
+    assignments, val = solve(constraints) 
+    return assignments, val
+
+if __name__=='__main__':
+    interactive()
+
+    a, val = solve_from_strings(['A*A=A+1', 'A=B*B'])
+    print(a)
+    print(val)
+

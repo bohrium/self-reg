@@ -109,6 +109,9 @@ def plot_SGD():
     Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=2) 
     plot_fill(X, Y, S, color=yellow, label='theory (deg 2 poly)')
     
+    #Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=3) 
+    #plot_fill(X, Y, S, color=green, label='theory (deg 3 poly)')
+    
     Y, S = sgd_test_exponential(gradstats, eta=X, T=okey.T, degree=2)
     plot_fill(X, Y, S, color=green, label='theory (deg 2 ode)')
 
@@ -148,7 +151,7 @@ def plot_BETA():
     )
  
  
-#plot_SGD()
+plot_SGD()
 #plot_OPT()
-plot_BETA()
+#plot_BETA()
 

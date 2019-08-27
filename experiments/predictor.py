@@ -1,5 +1,5 @@
 ''' author: samtenka
-    change: 2019-06-18
+    change: 2019-06-26
     create: 2019-06-18
     descrp: Predict based on diagrams
 '''
@@ -7,6 +7,7 @@
 from matplotlib import pyplot as plt
 import numpy as np
 from optimlogs import OptimKey
+import solver
 import sys 
 from utils import prod
 
@@ -14,16 +15,16 @@ red  ='#cc4444'
 green='#44cc44'
 blue ='#4444cc'
 
+def choose(T, t):
+    return prod(range(T-t+1, T+1)) / float(prod(range(1, t+1)))
+
 def from_string(gradstats, formula, eta, T):
     Y = formula[:]
     S = formula.replace('- ', '+ ').replace(' -', ' +')
     for k in gradstats:
         Y = Y.replace(k, 'gradstats["{}"]["mean"]'.format(k))
         S = S.replace(k, 'gradstats["{}"]["stdv"]/gradstats["{}"]["nb_samples"]**0.5'.format(k, k))
-    return (eval(form, {'eta':eta, 'T':T, 'gradstats':gradstats, 'np':np}) for form in (Y, S))
-
-def choose(T, t):
-    return prod(range(T-t+1, T+1)) / float(prod(range(1, t+1)))
+    return (eval(form, {'eta':eta, 'T':T, 'gradstats':gradstats, 'np':np, 'choose':choose}) for form in (Y, S))
 
 sgd_test_coeffs = (
     '(+ ( ()(0) ) )',
@@ -42,11 +43,26 @@ def sgd_test_exponential(gradstats, eta, T, degree):
     # TODO: correct error bars 
     cs = [sgd_test_coeffs[d] for d in range(3)]
     if degree==2:
-        rate = '(-2 * {} / {})'.format(cs[2], cs[1])
-        scale = '({} * {} / (2 * {}))'.format(cs[1], cs[1], cs[2])
-        offset = '({} - {} * {} / (2 * {}))'.format(cs[0], cs[1], cs[1], cs[2])
-        formula = '{} * np.exp(- {} * eta) + {}'.format(scale, rate, offset)
-        Y, S = from_string(gradstats, formula, eta, T)
-    return Y, S
+        #rate = '(-2 * {} / {})'.format(cs[2], cs[1])
+        #scale = '({} * {} / (2 * {}))'.format(cs[1], cs[1], cs[2])
+        #offset = '({} - {} * {} / (2 * {}))'.format(cs[0], cs[1], cs[1], cs[2])
 
+        # TODO: do justice to fact that cs[0] etc ARE NOT NUMBERS (but instead STRINGS representing formulae)
+
+        assignments, val = solver.solve_from_strings([
+            '        SCALE * exp(- RATE * X) + OFFSET   = {}'.format(cs[0]),
+            '    d_X(SCALE * exp(- RATE * X) + OFFSET)  = {}'.format(cs[1]),
+            'd_X(d_X(SCALE * exp(- RATE * X) + OFFSET)) = {}'.format(cs[2]),
+        ])
+        print(assignments, val)
+        scale = assignments['SCALE']
+        rate = assignments['RATE']
+        offset = assignments['OFFSET']
+        formula = '{} * np.exp(- {} * eta) + {}'.format(scale, rate, offset)
+
+        Y, S = from_string(gradstats, formula, eta, T)
+    elif degree==3:
+        pass
+
+    return Y, S
 
