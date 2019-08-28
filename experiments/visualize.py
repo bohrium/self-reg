@@ -103,17 +103,24 @@ def plot_SGD():
     plot_bars(X, Y, S, color=blue, label='experiment')
     
     X = interpolate(X)
-    Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=1) 
-    plot_fill(X, Y, S, color=red, label='theory (deg 1)')
-    
-    Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=2) 
-    plot_fill(X, Y, S, color=yellow, label='theory (deg 2 poly)')
-    
+
+    #Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=1) 
+    #plot_fill(X, Y, S, color=red, label='theory (deg 1 poly)')
+    #
+    #Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=2) 
+    #plot_fill(X, Y, S, color=yellow, label='theory (deg 2 poly)')
+    #
     #Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=3) 
     #plot_fill(X, Y, S, color=green, label='theory (deg 3 poly)')
-    
+
+    Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=1) 
+    plot_fill(X, Y, S, color=red, label='theory (deg 1 ode)')
+
     Y, S = sgd_test_exponential(gradstats, eta=X, T=okey.T, degree=2)
-    plot_fill(X, Y, S, color=green, label='theory (deg 2 ode)')
+    plot_fill(X, Y, S, color=yellow, label='theory (deg 2 ode)')
+    
+    Y, S = sgd_test_exponential(gradstats, eta=X, T=okey.T, degree=3)
+    plot_fill(X, Y, S, color=green, label='theory (deg 3 ode)')
 
     finish_plot(
         title='Prediction of SGD \n(test loss after 100 steps on mnist-10 logistic)'.format(

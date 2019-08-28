@@ -73,9 +73,9 @@ if __name__=='__main__':
     #LC = Quadratic(dim=12)
 
     ol = OptimLog()
-    for eta in tqdm.tqdm(np.arange(0.0, 1.01, 0.20)):
+    for eta in tqdm.tqdm(np.arange(0.55, 0.76, 0.05)):
         for T in [100]:
-            ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(3000.0/(T+1))))
+            ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(10000.0/(T+1))))
     print(ol)
     with open('ol.data', 'w') as f:
         f.write(str(ol))

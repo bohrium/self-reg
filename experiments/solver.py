@@ -6,14 +6,17 @@
 
 from utils import CC
 import numpy as np
+import tqdm
 
-expr_types = {'ATOM', 'EXP', 'MUL', 'DIV', 'ADD', 'SUB'}
+expr_types = {'ATOM', 'EXP', 'MUL', 'DIV', 'ADD', 'SUB', 'LOG', 'SQUARE'}
 
 def partial(expression, varname): 
     etype, A, B = expression[0], expression[1], expression[2] if len(expression)==3 else None 
     return {
         'ATOM': (lambda: ['ATOM', 1.0 if A==varname else 0.0]),
         'EXP': (lambda: ['MUL', partial(A, varname), expression]),
+        'LOG': (lambda: ['DIV', partial(A, varname), A]),
+        'SQUARE': (lambda: ['MUL', partial(A, varname), ['MUL', ['ATOM', 2.0], A]]),
         'MUL': (lambda: [
             'ADD',
                 ['MUL', partial(A, varname), B],
@@ -75,6 +78,16 @@ class Parser:
             self.match('(')
             tree = ['EXP', self.get_expression()]
             self.match(')')
+        elif self.peek()=='s':
+            self.match('square')
+            self.match('(')
+            tree = ['SQUARE', self.get_expression()]
+            self.match(')')
+        elif self.peek()=='l':
+            self.match('log')
+            self.match('(')
+            tree = ['LOG', self.get_expression()]
+            self.match(')')
         elif self.peek() in '+-0123456789.':
             tree = self.get_number()
         else:
@@ -103,11 +116,57 @@ class Parser:
             tree = termA
         return tree
 
+def simplify(expression):
+    etype, A, B = expression[0], expression[1], expression[2] if len(expression)==3 else None 
+    A = simplify(A) if type(A)==type([]) else A
+    B = simplify(B) if B is not None else B
+    return {
+        'ATOM': (lambda: expression),
+        'EXP': (lambda:
+            ['ATOM', 1.0] if A==['ATOM', 0.0] else
+            [etype, A]
+        ),
+        'LOG': (lambda:
+            ['ATOM', 0.0] if A==['ATOM', 1.0] else
+            [etype, A]
+        ),
+        'SQUARE': (lambda:
+            ['ATOM', 0.0] if A==['ATOM', 0.0] else
+            ['ATOM', 1.0] if A==['ATOM', 1.0] else
+            [etype, A]
+        ),
+        'MUL': (lambda:
+            ['ATOM', 0.0] if A==['ATOM', 0.0] else
+            ['ATOM', 0.0] if B==['ATOM', 0.0] else
+            B if A==['ATOM', 1.0] else
+            A if B==['ATOM', 1.0] else
+            [etype, A, B]
+        ),
+        'DIV': (lambda: 
+            ['ATOM', 0.0] if A==['ATOM', 0.0] else
+            A if B==['ATOM', 1.0] else
+            ['ATOM', 1.0] if A==B else
+            [etype, A, B]
+        ),
+        'ADD': (lambda:
+            A if B==['ATOM', 0.0] else
+            B if A==['ATOM', 0.0] else
+            [etype, A, B]
+        ),
+        'SUB': (lambda:
+            A if B==['ATOM', 0.0] else
+            ['ATOM', 0.0] if A==B else
+            [etype, A, B]
+        ),
+    }[etype]()
+
 def evaluate(expression, assignments):
     etype, A, B = expression[0], expression[1], expression[2] if len(expression)==3 else None 
     return {
         'ATOM': (lambda: float(assignments[A] if A in assignments else A)),
         'EXP': (lambda: np.exp(evaluate(A, assignments))),
+        'LOG': (lambda: np.log(evaluate(A, assignments))),
+        'SQUARE': (lambda: evaluate(A, assignments)**2 ),
         'MUL': (lambda: evaluate(A, assignments) * evaluate(B, assignments)),
         'DIV': (lambda: evaluate(A, assignments) / evaluate(B, assignments)),
         'ADD': (lambda: evaluate(A, assignments) + evaluate(B, assignments)),
@@ -119,8 +178,10 @@ def string_from(expression):
     return {
         'ATOM': (lambda: str(A)),
         'EXP': (lambda: 'exp({})'.format(string_from(A))),
-        'MUL': (lambda: '{}*{}'.format(string_from(A), string_from(B))),
-        'DIV': (lambda: '{}/({})'.format(string_from(A), string_from(B))),
+        'LOG': (lambda: 'log({})'.format(string_from(A))),
+        'SQUARE': (lambda: '({})**2'.format(string_from(A))),
+        'MUL': (lambda: '({}*{})'.format(string_from(A), string_from(B))),
+        'DIV': (lambda: '({})/({})'.format(string_from(A), string_from(B))),
         'ADD': (lambda: '{} + {}'.format(string_from(A), string_from(B))),
         'SUB': (lambda: '{} - ({})'.format(string_from(A), string_from(B))),
     }[etype]()
@@ -138,38 +199,41 @@ def sum_squares(exprs):
     if len(exprs)==0:
         return ['ATOM', 0.0]
     elif len(exprs)==1:
-        return ['MUL', exprs[0], exprs[0]] 
+        return ['SQUARE', exprs[0]]
     else:
         return ['ADD', sum_squares(exprs[0:1]), sum_squares(exprs[1:])]
 
-def solve(constraints, tolerance = 1e-12, eta = 0.01, init_noise=0.0, drift_noise=1.0, tries=100, steps_per_try=1000): 
-    expr = sum_squares([['SUB', left, right] for (left, right) in constraints])
+def solve(constraints, start_eta=0.1, mom_decay=0.95, start_noise=1.0, random_tries=10000, grad_tries=1000): 
+    expr = simplify(  sum_squares([['SUB', left, right] for (left, right) in constraints])  )
     fvs = free_vars(expr)
     partials = {v:partial(expr, v) for v in fvs}
 
-    best_val = float('+inf')
-    best_assignments = None
-    
-    for i in range(tries):
-        assignments = {v: init_noise*np.random.randn() for v in fvs}
-        for j in range(steps_per_try):
-            val = evaluate(expr, assignments) 
+    best_assignments = {v: start_noise*np.random.randn() for v in fvs} 
+    best_val = evaluate(expr, best_assignments) 
 
-            new_assignments = {v: assignments[v] - eta * evaluate(partials[v], assignments) for v in fvs} 
-            newval = evaluate(expr, new_assignments) 
-            if newval <= val:
-                val, assignments = newval, new_assignments
-
-            new_assignments = {v: assignments[v] - drift_noise*np.random.randn() for v in fvs} 
-            newval = evaluate(expr, new_assignments) 
-            if newval <= val:
-                val, assignments = newval, new_assignments
-            
+    assignments = best_assignments
+    noises = {v: start_noise for v in fvs}
+    for i in range(random_tries):
+        assignments = {v: noises[v] * np.random.laplace() for v in fvs}
+        val = evaluate(expr, assignments) 
+        noises = {v: noises[v]*0.99 + start_noise*0.01 for v in fvs}
         if val <= best_val:
             best_val, best_assignments = val, assignments
+            noises = {v: noises[v]*0.2 + abs(best_assignments[v])*0.8 for v in fvs}
 
-        if val<tolerance:
-            break
+    eta = start_eta
+    moms = {v: 0.0 for v in fvs}
+    for i in tqdm.tqdm((range(grad_tries))):
+        partial_vals = {v: evaluate(partials[v], best_assignments) for v in fvs}
+        moms = {v: moms[v]*mom_decay + partial_vals[v]*(1.0-mom_decay) for v in fvs}
+        assignments = {v: best_assignments[v] - eta * moms[v] for v in fvs} 
+        val = evaluate(expr, assignments) 
+        if val <= best_val:
+            print(best_val)
+            best_val, best_assignments = val, assignments
+            eta *= 4.0/3
+        else:
+            eta *= 2.0/3
 
     return best_assignments, best_val
 
@@ -188,7 +252,7 @@ def interactive():
             exit()
         elif command=='solve':
             a, val = solve(constraints)
-            print(CC + '    '+'  '.join('@M {}@C =@G {:.7f}@C '.format(v, a[v]) for v in a))
+            print(CC + '    '+'  '.join('@M {}@C  = @G {:.7f}@C '.format(v, a[v]) for v in a))
             print(CC + '    accurate to @R {:.7f}@C '.format(val**0.5))
         elif command=='clear':
             constraints = []
@@ -205,7 +269,7 @@ def interactive():
 def solve_from_strings(system):
     ''' `system` is a list of strings '''
     handsides = [equation.split('=') for equation in system] 
-    constraints = [((Parser(left).get_tree(), Parser(right).get_tree())) for left,right in handsides]
+    constraints = [(Parser(left).get_tree(), Parser(right).get_tree()) for left,right in handsides]
     assignments, val = solve(constraints) 
     return assignments, val
 

@@ -169,11 +169,11 @@ class MnistLeNet(MnistAbstractArchitecture):
 if __name__=='__main__':
     BATCH = 200
 
-    #ML = MnistLeNet(digits=list(range(10))) 
-    #LRATE = 1e-0
+    ML = MnistLeNet(digits=list(range(10))) 
+    LRATE = 1e+1
 
-    ML = MnistLogistic(digits=list(range(10))) 
-    LRATE = 1e-0
+    #ML = MnistLogistic(digits=list(range(10))) 
+    #LRATE = 1e-0
 
     for i in range(1000):
         D = ML.sample_data(N=BATCH)

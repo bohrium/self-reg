@@ -24,7 +24,7 @@ def from_string(gradstats, formula, eta, T):
     for k in gradstats:
         Y = Y.replace(k, 'gradstats["{}"]["mean"]'.format(k))
         S = S.replace(k, 'gradstats["{}"]["stdv"]/gradstats["{}"]["nb_samples"]**0.5'.format(k, k))
-    return (eval(form, {'eta':eta, 'T':T, 'gradstats':gradstats, 'np':np, 'choose':choose}) for form in (Y, S))
+    return tuple(eval(form, {'eta':eta, 'T':T, 'gradstats':gradstats, 'np':np, 'choose':choose}) for form in (Y, S))
 
 sgd_test_coeffs = (
     '(+ ( ()(0) ) )',
@@ -41,28 +41,27 @@ def sgd_test_taylor(gradstats, eta, T, degree):
 
 def sgd_test_exponential(gradstats, eta, T, degree):
     # TODO: correct error bars 
-    cs = [sgd_test_coeffs[d] for d in range(3)]
+    cs = [from_string(gradstats, sgd_test_coeffs[d], None, T)[0] for d in range(4)]
+    print(cs)
     if degree==2:
-        #rate = '(-2 * {} / {})'.format(cs[2], cs[1])
-        #scale = '({} * {} / (2 * {}))'.format(cs[1], cs[1], cs[2])
-        #offset = '({} - {} * {} / (2 * {}))'.format(cs[0], cs[1], cs[1], cs[2])
+        rate = -2*cs[2]/cs[1]
+        scale = cs[1]**2 / (2*cs[2])
+        offset = cs[0] - cs[1]**2/(2*cs[2])
 
-        # TODO: do justice to fact that cs[0] etc ARE NOT NUMBERS (but instead STRINGS representing formulae)
-
-        assignments, val = solver.solve_from_strings([
-            '        SCALE * exp(- RATE * X) + OFFSET   = {}'.format(cs[0]),
-            '    d_X(SCALE * exp(- RATE * X) + OFFSET)  = {}'.format(cs[1]),
-            'd_X(d_X(SCALE * exp(- RATE * X) + OFFSET)) = {}'.format(cs[2]),
-        ])
-        print(assignments, val)
-        scale = assignments['SCALE']
-        rate = assignments['RATE']
-        offset = assignments['OFFSET']
         formula = '{} * np.exp(- {} * eta) + {}'.format(scale, rate, offset)
 
         Y, S = from_string(gradstats, formula, eta, T)
+        S *= 0
     elif degree==3:
-        pass
+        rate = abs(3 * (cs[2]/cs[1])**2 - 2 * (cs[3]/cs[1]))**0.5
+        scale = (1.0/2 + (cs[2]/cs[1])/(2*rate))**2 * rate / cs[1]  
+        shift = abs((scale*rate)/cs[1])**0.5   
+        offset = cs[0] - 1.0/shift
+
+        formula = '1.0 / ( {} * (np.exp(- {} * eta) - 1) + {} ) + {}'.format(scale, rate, shift, offset)
+
+        Y, S = from_string(gradstats, formula, eta, T)
+        S *= 0
 
     return Y, S
 
