@@ -10,7 +10,6 @@ from utils import CC
 from optimlogs import OptimKey, OptimLog
 from landscape import PointedLandscape
 from quad_landscapes import Quadratic
-from mnist_landscapes import MnistLogistic, MnistLeNet
 import torch
 import tqdm
 
@@ -34,52 +33,66 @@ def compute_losses(land, eta, T, N, I=1):
         sgd_test_acc = land.get_accuracy(D_test)
         ol.accum(OptimKey(optimizer='sgd', beta=0.0, eta=eta, N=N, T=T, metric='testacc'), sgd_test_acc)
 
-        # GD:
-        land.reset_weights(w0)
-        for t in range(T):
-            loss_stalk = land.get_loss_stalk(D_train)
-            grad = land.nabla(loss_stalk, False).detach()
-            land.update_weights(-eta*grad)
-        gd_test_loss = land.get_loss_stalk(D_test)
-        ol.accum(OptimKey(optimizer='gd', beta=0.0, eta=eta, N=N, T=T, metric='test'), gd_test_loss)
-        gd_test_acc = land.get_accuracy(D_test)
-        ol.accum(OptimKey(optimizer='gd', beta=0.0, eta=eta, N=N, T=T, metric='testacc'), gd_test_acc)
+        ## GD:
+        #land.reset_weights(w0)
+        #for t in range(T):
+        #    loss_stalk = land.get_loss_stalk(D_train)
+        #    grad = land.nabla(loss_stalk, False).detach()
+        #    land.update_weights(-eta*grad)
+        #gd_test_loss = land.get_loss_stalk(D_test)
+        #ol.accum(OptimKey(optimizer='gd', beta=0.0, eta=eta, N=N, T=T, metric='test'), gd_test_loss)
+        #gd_test_acc = land.get_accuracy(D_test)
+        #ol.accum(OptimKey(optimizer='gd', beta=0.0, eta=eta, N=N, T=T, metric='testacc'), gd_test_acc)
 
 
-        # GDC:
-        for BETA in [10**-3.0, 10**-2.5, 10**-2.0, 10**-1.5, 10**-1]:
-            land.reset_weights(w0)
-            for t in range(T):
-                gradA = land.nabla(land.get_loss_stalk(D_train[:int(N//2)]))
-                gradB = land.nabla(land.get_loss_stalk(D_train[int(N//2):]))
-                traceC = gradA.dot(gradA-gradB) * (N*N/4)  
-                grad = ((gradA + gradB)/2).detach()
-                grad_traceC = land.nabla(traceC, False).detach() 
-                land.update_weights(-eta*( grad + BETA * grad_traceC ))
-            gdc_test_loss = land.get_loss_stalk(D_test)
-            ol.accum(OptimKey(optimizer='gdc', beta=BETA, eta=eta, N=N, T=T, metric='test'), gdc_test_loss)
-            gdc_test_acc = land.get_accuracy(D_test)
-            ol.accum(OptimKey(optimizer='gdc', beta=BETA, eta=eta, N=N, T=T, metric='testacc'), gdc_test_acc)
+        ## GDC:
+        #for BETA in [10**-3.0, 10**-2.5, 10**-2.0, 10**-1.5, 10**-1.0]:
+        #    land.reset_weights(w0)
+        #    for t in range(T):
+        #        gradA = land.nabla(land.get_loss_stalk(D_train[:int(N//2)]))
+        #        gradB = land.nabla(land.get_loss_stalk(D_train[int(N//2):]))
+        #        traceC = gradA.dot(gradA-gradB) * (N*N/4)  
+        #        grad = ((gradA + gradB)/2).detach()
+        #        grad_traceC = land.nabla(traceC, False).detach() 
+        #        land.update_weights(-eta*( grad + BETA * grad_traceC ))
+        #    gdc_test_loss = land.get_loss_stalk(D_test)
+        #    ol.accum(OptimKey(optimizer='gdc', beta=BETA, eta=eta, N=N, T=T, metric='test'), gdc_test_loss)
+        #    gdc_test_acc = land.get_accuracy(D_test)
+        #    ol.accum(OptimKey(optimizer='gdc', beta=BETA, eta=eta, N=N, T=T, metric='testacc'), gdc_test_acc)
 
-        # differences: 
-        ol.accum(OptimKey(optimizer='diff', beta=0.0, eta=eta, N=N, T=T, metric='test'), gd_test_loss-sgd_test_loss)
-        #ol.accum(OptimKey(optimizer='diffc', eta=eta, N=N, T=T, metric='test'), gdc_test_loss-sgd_test_loss)
+        ## differences: 
+        #ol.accum(OptimKey(optimizer='diff', beta=0.0, eta=eta, N=N, T=T, metric='test'), gd_test_loss-sgd_test_loss)
+        ##ol.accum(OptimKey(optimizer='diffc', eta=eta, N=N, T=T, metric='test'), gdc_test_loss-sgd_test_loss)
 
     return ol
 
 if __name__=='__main__':
-    LC = MnistLogistic(digits=list(range(10)))
-    #from quad_landscapes import Quadratic
-    #LC = Quadratic(dim=12)
+    from mnist_landscapes import MnistLogistic, MnistLeNet
 
+
+
+    #LC = MnistLogistic(digits=list(range(10)))
+    #ol = OptimLog()
+    #for eta in tqdm.tqdm(np.arange(0.55, 0.76, 0.05)):
+    #    for T in [100]:
+    #        ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(10000.0/(T+1))))
+
+    LC = MnistLeNet(digits=list(range(10)))
     ol = OptimLog()
-    for eta in tqdm.tqdm(np.arange(0.55, 0.76, 0.05)):
+    for eta in tqdm.tqdm(np.arange( 0.0, 7.6, 0.5 )):
         for T in [100]:
             ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(10000.0/(T+1))))
+
+
+
     print(ol)
     with open('ol.data', 'w') as f:
         f.write(str(ol))
 
+
+
+    #from quad_landscapes import Quadratic
+    #LC = Quadratic(dim=12)
     #DIM = 8
     #Q = Quadratic(dim=DIM)
     #ol = OptimLog()

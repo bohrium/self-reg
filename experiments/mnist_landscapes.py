@@ -106,11 +106,10 @@ class MnistAbstractArchitecture(MNIST):
         return argmax.eq(labels).sum() / labels.shape[0]
 
 class MnistLogistic(MnistAbstractArchitecture):
-    def __init__(self, digits=list(range(10)), weight_scale=0.01):
+    def __init__(self, digits=list(range(10)), weight_scale=0.01**(1.0/1)):
         super().__init__(digits, weight_scale)
         self.subweight_shapes = [
-            (self.nb_classes , 28*28        ),
-            (self.nb_classes , 1            )
+            (self.nb_classes , 28*28        ), (self.nb_classes , 1            )
         ]
         self.reset_weights()
 
@@ -131,7 +130,7 @@ class MnistLogistic(MnistAbstractArchitecture):
         return argmax.eq(labels).double().mean()
 
 class MnistLeNet(MnistAbstractArchitecture):
-    def __init__(self, digits=list(range(10)), weight_scale=1.0):
+    def __init__(self, digits=list(range(10)), weight_scale=0.1**(1.0/4)):
         super().__init__(digits, weight_scale)
         self.subweight_shapes = [
             (16              ,  1     , 5, 5),      #(16,), 
@@ -167,15 +166,15 @@ class MnistLeNet(MnistAbstractArchitecture):
     #--------------------------------------------------------------------------#
  
 if __name__=='__main__':
-    BATCH = 200
+    BATCH = 1#200
 
     ML = MnistLeNet(digits=list(range(10))) 
-    LRATE = 1e+1
+    LRATE = 10**0.0#e+0
 
     #ML = MnistLogistic(digits=list(range(10))) 
-    #LRATE = 1e-0
+    #LRATE = 10e-0
 
-    for i in range(1000):
+    for i in range(3000):
         D = ML.sample_data(N=BATCH)
         L = ML.get_loss_stalk(D)
         G = ML.nabla(L)
@@ -183,11 +182,11 @@ if __name__=='__main__':
 
         if (i+1)%100: continue
 
-        La, Lb, Lc = (ML.get_loss_stalk(ML.sample_data(N=BATCH)) for i in range(3))
-        acc = ML.get_accuracy(ML.sample_data(N=BATCH))
+        La, Lb, Lc = (ML.get_loss_stalk(ML.sample_data(N=1000)) for i in range(3))
+        acc = ML.get_accuracy(ML.sample_data(N=1000))
         Ga, Gb, Gc = (ML.nabla(Lx) for Lx in (La, Lb, Lc))
         GaGa, GaGb = (torch.dot(Ga, Gx) for Gx in (Ga, Gb)) 
-        C = (GaGa-GaGb) * BATCH**2 / (BATCH-1.0) 
+        #C = (GaGa-GaGb) * BATCH**2 / (BATCH-1.0) 
         GaHcGa, GaHcGb = (
             torch.dot(Gx, ML.nabla(torch.dot(Gc, Gy.detach())))
             for Gx, Gy in ((Ga, Ga), (Ga, Gb)) 
@@ -199,6 +198,6 @@ if __name__=='__main__':
             'test loss @B {:.2f}'.format(La.detach().numpy()),
             'test acc @B {:.2f}'.format(acc.detach().numpy()),
             'grad mag2 @G {:+.1e}'.format(GaGb.detach().numpy()),
-            'trace cov @Y {:+.1e}'.format(C.detach().numpy()),
+            #'trace cov @Y {:+.1e}'.format(C.detach().numpy()),
             'cov hess @R {:+.1e}'.format(CH.detach().numpy()),
         '']))

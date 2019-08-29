@@ -29,30 +29,33 @@ def from_string(gradstats, formula, eta, T):
 sgd_test_coeffs = (
     '(+ ( ()(0) ) )',
     '(- (choose(T, 1) * (01)(0-1)) )',
-    '(+ (choose(T, 2) * 2*(01-02)(0-1-2) + choose(T, 1) * (01-02)(0-12)) )',
+    '(+ (choose(T, 2) * 2*(01-02)(0-1-2) + choose(T, 1) * 0.5*(01-02)(0-12)) )',
     '(- (choose(T, 3) * (4*(01-02-13)(0-1-2-3) + 2*(01-02-03)(0-1-2-3)) + choose(T, 2) * (1.5 * (01-02-03)(01-23) + (01-02-13)(0-12-3)) + choose(T, 1) * ((1.0/6) * (01-02-03)(0-123))) )',
 )
 
 def sgd_test_taylor(gradstats, eta, T, degree):
     assert 1 <= degree, 'need strictly positive degree of approximation!'
     formula = ' + '.join('eta*'*d + sgd_test_coeffs[d] for d in range(degree+1))
+    print(formula)
     Y, S = from_string(gradstats, formula, eta, T)
     return Y, S
 
 def sgd_test_exponential(gradstats, eta, T, degree):
     # TODO: correct error bars 
-    cs = [from_string(gradstats, sgd_test_coeffs[d], None, T)[0] for d in range(4)]
-    print(cs)
     if degree==2:
+        cs = [from_string(gradstats, sgd_test_coeffs[d], None, T)[0] for d in range(3)]
+        print(cs)
         rate = -2*cs[2]/cs[1]
         scale = cs[1]**2 / (2*cs[2])
         offset = cs[0] - cs[1]**2/(2*cs[2])
 
         formula = '{} * np.exp(- {} * eta) + {}'.format(scale, rate, offset)
+        print(formula)
 
         Y, S = from_string(gradstats, formula, eta, T)
         S *= 0
     elif degree==3:
+        cs = [from_string(gradstats, sgd_test_coeffs[d], None, T)[0] for d in range(4)]
         rate = abs(3 * (cs[2]/cs[1])**2 - 2 * (cs[3]/cs[1]))**0.5
         scale = (1.0/2 + (cs[2]/cs[1])/(2*rate))**2 * rate / cs[1]  
         shift = abs((scale*rate)/cs[1])**0.5   
