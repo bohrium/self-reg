@@ -67,7 +67,7 @@ def compute_losses(land, eta, T, N, I=1):
     return ol
 
 if __name__=='__main__':
-    from mnist_landscapes import MnistLogistic, MnistLeNet
+    from mnist_landscapes import MnistLogistic, MnistLeNet, MnistMLP
 
 
 
@@ -79,7 +79,7 @@ if __name__=='__main__':
 
     LC = MnistLeNet(digits=list(range(10)))
     ol = OptimLog()
-    for eta in tqdm.tqdm(np.arange( 0.0, 7.6, 0.5 )):
+    for eta in tqdm.tqdm(np.arange( 0.0, 0.5, 0.1 )):
         for T in [100]:
             ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(10000.0/(T+1))))
 

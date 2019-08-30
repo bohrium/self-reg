@@ -33,41 +33,42 @@ def compute_grad_stats(land, N, I=1):
             for Gi in (GA, GB, GC, GD)
         )
 
-        gs.accum('()(0)', (
-            (A+B+C+D)/4
-        ))
+        #gs.accum('()(0)', (
+        #    (A+B+C+D)/4
+        #))
 
-        gs.accum('(01)(0-1)', (
-            (GA.dot(GB) + GC.dot(GD))/2
-        ))
-        gs.accum('(01)(01)', (
-            (GA.dot(GA)+GB.dot(GB)+GC.dot(GC)+GD.dot(GD))/4 * N  
-            - gs.recent('(01)(0-1)') * (N-1)
-        ))
+        #gs.accum('(01)(0-1)', (
+        #    (GA.dot(GB) + GC.dot(GD))/2
+        #))
+        #gs.accum('(01)(01)', (
+        #    (GA.dot(GA)+GB.dot(GB)+GC.dot(GC)+GD.dot(GD))/4 * N  
+        #    - gs.recent('(01)(0-1)') * (N-1)
+        #))
 
         gs.accum('(01-02)(0-1-2)', (
-            (nab(GA.dot(GB_))).dot(GC)
+            ((nab(GA.dot(GB_))).dot(GC) +  
+             (nab(GB.dot(GC_))).dot(GD))/2 
         )) 
         gs.accum('(01-02)(0-12)', (
             ((nab(GA.dot(GB_))).dot(GB) +
              (nab(GC.dot(GD_))).dot(GD))/2 * N 
             - gs.recent('(01-02)(0-1-2)') * (N-1)
         ))
-        gs.accum('(01-02)(01-2)', (
-            (GA.dot(nab(GB.dot(GB_))) +
-             GC.dot(nab(GD.dot(GD_))))/2 * N
-            - gs.recent('(01-02)(0-1-2)') * (N-1)
-        ))
+        #gs.accum('(01-02)(01-2)', (
+        #    (GA.dot(nab(GB.dot(GB_))) +
+        #     GC.dot(nab(GD.dot(GD_))))/2 * N
+        #    - gs.recent('(01-02)(0-1-2)') * (N-1)
+        #))
 
-        gs.accum('(01-02)(012)', (
-            ((nab(GA.dot(GA_))).dot(GA) +
-             (nab(GB.dot(GB_))).dot(GB) +
-             (nab(GC.dot(GC_))).dot(GC) +
-             (nab(GD.dot(GD_))).dot(GD))/4 * N*N
-            -     gs.recent('(01-02)(0-12)') * (N-1)
-            - 2 * gs.recent('(01-02)(01-2)') * (N-1)
-            -     gs.recent('(01-02)(0-1-2)') * (N-1)*(N-2)
-        ))
+        #gs.accum('(01-02)(012)', (
+        #    ((nab(GA.dot(GA_))).dot(GA) +
+        #     (nab(GB.dot(GB_))).dot(GB) +
+        #     (nab(GC.dot(GC_))).dot(GC) +
+        #     (nab(GD.dot(GD_))).dot(GD))/4 * N*N
+        #    -     gs.recent('(01-02)(0-12)') * (N-1)
+        #    - 2 * gs.recent('(01-02)(01-2)') * (N-1)
+        #    -     gs.recent('(01-02)(0-1-2)') * (N-1)*(N-2)
+        #))
 
         ##tree
         #gs.accum('(01-02-03)(0-1-2-3)', (
@@ -321,9 +322,10 @@ if __name__ == '__main__':
 
 
 
-    from mnist_landscapes import MnistLeNet
+    from mnist_landscapes import MnistLeNet, MnistMLP
     LC = MnistLeNet(digits=list(range(10)))
-    grad_stats = str(compute_grad_stats(LC, N=4, I=300000))
+    grad_stats = str(compute_grad_stats(LC, N=48, I=400000))
+
     with open('gs.data', 'w') as f:
         f.write(grad_stats)
 
