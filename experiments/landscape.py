@@ -138,6 +138,6 @@ class FixedInitsLandscape(PointedLandscape):
     def switch_to(self, init_idx):  
         ''' switch current weight to that of the given index '''
         self.set_weights(self.inits[init_idx]) 
-        print(CC + 'switched to initial weight @R {} @C of @R {} @C '.format(
-            init_idx, len(self.inits)
-        ))
+        #print(CC + 'switched to initial weight @R {} @C of @R {} @C '.format(
+        #    init_idx, len(self.inits)
+        #))

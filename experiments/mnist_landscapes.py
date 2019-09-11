@@ -157,7 +157,7 @@ class MnistLogistic(MnistAbstractArchitecture):
 class MnistMLP(MnistAbstractArchitecture):
     '''
     '''
-    def __init__(self, digits=list(range(10)), weight_scale=1e-1, width=16, verbose=False):
+    def __init__(self, digits=list(range(10)), weight_scale=1e-1, width=32, verbose=False):
         ''' '''
         super().__init__(digits, weight_scale)
         self.subweight_shapes = [
@@ -198,13 +198,12 @@ class MnistMLP(MnistAbstractArchitecture):
 
 
 class MnistLeNet(MnistAbstractArchitecture):
-    def __init__(self, digits=list(range(10)), weight_scale=1e0, widthA=16, widthB=16, widthC=16, verbose=False):
+    def __init__(self, digits=list(range(10)), weight_scale=10**(-1.0/3), widthA= 8, widthB=16, verbose=False):
         super().__init__(digits, weight_scale)
         self.subweight_shapes = [
             (widthA          ,  1     , 5, 5),      (widthA,), 
             (widthB          , widthA , 5, 5),      (widthB,),
-            (widthC          , 4*4*widthB ),        (widthC         , 1),
-            (self.nb_classes , widthC     ),        (self.nb_classes, 1),
+            (self.nb_classes , widthB * 4*4 ),      (self.nb_classes, 1),
         ]
 
         self.widthA = widthA
@@ -218,11 +217,10 @@ class MnistLeNet(MnistAbstractArchitecture):
 
     def logits_and_labels(self, data_indices):
         x, y = self.imgs[data_indices], self.lbls[data_indices]
-        x = tanh(conv2d(x, self.get_subweight(0), bias=self.get_subweight(1), stride=2))
-        x = tanh(conv2d(x, self.get_subweight(2), bias=self.get_subweight(3), stride=2))
-        x = x.view(-1, 4*4*self.widthB, 1)
-        x = tanh(matmul(self.get_subweight(4), x) + self.get_subweight(5))
-        x =      matmul(self.get_subweight(6), x) + self.get_subweight(7)
+        x = tanh(conv2d(x, self.get_subweight(0), bias=self.get_subweight(1), stride=2)) # 12 x 12
+        x = tanh(conv2d(x, self.get_subweight(2), bias=self.get_subweight(3), stride=2)) #  4 x  4
+        x = x.view(-1, self.widthB*4*4, 1)
+        x = matmul(self.get_subweight(4), x) + self.get_subweight(5).unsqueeze(0)
         x = x.view(-1, self.nb_classes)
         logits = log_softmax(x, dim=1)
         return logits, y
@@ -287,32 +285,33 @@ if __name__=='__main__':
     #grid_search()
 
     BATCH = 1
-    TIME = 300
+    TIME = 1000
 
     model_nm = 'LENET'
     model_data = {
-        'LOGISTIC': {'class': MnistLogistic, 'weight_scale': 10**(-2.0/1), 'lrate':1e+1, 'file_nm': 'mnist-logistic.npy'},
-        'MLP'     : {'class': MnistMLP,      'weight_scale': 10**(-2.0/2), 'lrate':1e+1, 'file_nm': 'mnist-mlp.npy'},
-        'LENET'   : {'class': MnistLeNet,    'weight_scale': 10**( 0.0/3), 'lrate':2e+1, 'file_nm': 'mnist-lenet.npy'},
+        'LOGISTIC': {'class': MnistLogistic, 'weight_scale': 10**(-2.0/1), 'lrate':1e+0, 'file_nm': 'mnist-logistic.npy'},
+        'MLP'     : {'class': MnistMLP,      'weight_scale': 10**(-2.0/2), 'lrate':1e+0, 'file_nm': 'mnist-mlp.npy'},
+        'LENET'   : {'class': MnistLeNet,    'weight_scale': 10**(-1.0/3), 'lrate':1e+0, 'file_nm': 'mnist-lenet.npy'},
     }[model_nm]
     ML = model_data['class'](weight_scale = model_data['weight_scale'], verbose=True)
     ML.load_from('saved-weights/{}'.format(model_data['file_nm']), 12)
     LRATE = model_data['lrate']
 
+    D = ML.sample_data(N=TIME) 
     for i in range(TIME):
-        D = ML.sample_data(N=BATCH)
-        L = ML.get_loss_stalk(D)
+        L = ML.get_loss_stalk(D[i:i+1])
         G = ML.nabla(L)
         ML.update_weights(-LRATE * G)
 
         if (i+1)%25: continue
 
+        L_train= ML.get_loss_stalk(D)
         L_test = ML.get_loss_stalk(ML.sample_data(N=3000))
         acc = ML.get_accuracy(ML.sample_data(N=3000))
 
         print(CC+' @C \t'.join([
             'after @M {:4d} @C steps'.format(i+1),
-            'batch loss @Y {:.2f}'.format(L.detach().numpy()),
+            'train loss @Y {:.2f}'.format(L_train.detach().numpy()),
             'test loss @L {:.2f}'.format(L_test.detach().numpy()),
             'test acc @O {:.2f}'.format(acc.detach().numpy()),
         '']))
