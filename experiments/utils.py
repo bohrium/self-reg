@@ -52,15 +52,21 @@ megs_alloced = lambda: (
 class Colorizer(object):
     def __init__(self):
         self.ANSI_by_name = {
-            '@K ': '\033[30m',
-            '@R ': '\033[31m',
-            '@G ': '\033[32m',
-            '@Y ': '\033[33m',
-            '@B ': '\033[34m',
-            '@M ': '\033[35m',
-            '@C ': '\033[36m',
-            '@W ': '\033[37m',
-            '@^ ': '\033[1A',
+            '@K ': '\033[38;2;000;000;000m',  # color: black
+            '@R ': '\033[38;2;255;064;064m',  # color: red
+            '@O ': '\033[38;2;255;128;000m',  # color: orange
+            '@Y ': '\033[38;2;192;192;000m',  # color: yellow
+            '@L ': '\033[38;2;128;255;000m',  # color: lime 
+            '@G ': '\033[38;2;064;255;064m',  # color: green
+            '@J ': '\033[38;2;000;255;192m',  # color: jade
+            '@C ': '\033[38;2;000;192;192m',  # color: cyan
+            '@T ': '\033[38;2;000;192;255m',  # color: teal
+            '@B ': '\033[38;2;064;064;255m',  # color: blue
+            '@P ': '\033[38;2;128;000;255m',  # color: purple  
+            '@M ': '\033[38;2;192;000;192m',  # color: magenta
+            '@S ': '\033[38;2;255;000;128m',  # color: salmon  
+            '@W ': '\033[38;2;255;255;255m',  # color: white
+            '@^ ': '\033[1A',   # motion: up
         }
         self.text = ''
 
@@ -79,6 +85,22 @@ class Colorizer(object):
 CC = Colorizer()
 
 if __name__=='__main__':
+    print(CC + '@K moo')
+
+    print(CC + '@R moo')
+    print(CC + '@O moo')
     print(CC + '@Y moo')
+    print(CC + '@L moo')
+    print(CC + '@G moo')
+    print(CC + '@J moo')
+    print(CC + '@C moo')
+    print(CC + '@T moo')
+    print(CC + '@B moo')
+    print(CC + '@P moo')
+    print(CC + '@M moo')
+    print(CC + '@S moo')
+    print(CC + '@R moo')
+
+    print(CC + '@W moo')
     print(CC + '@R moo')
     print(CC + 'hi @M moo' + 'cow @C ')

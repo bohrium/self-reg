@@ -1,5 +1,5 @@
 ''' author: samtenka
-    change: 2019-08-13
+    change: 2019-09-10
     create: 2019-06-11
     descrp: instantiate abstract class `Landscape` for MNIST models (logistic and deep)
 '''
@@ -7,7 +7,7 @@
 
 from utils import device, prod, secs_endured, megs_alloced, CC
 
-from landscape import PointedLandscape
+from landscape import PointedLandscape, FixedInitsLandscape
 
 import tqdm
 import numpy as np
@@ -17,9 +17,9 @@ from torch.nn.functional import log_softmax, nll_loss
 from torchvision import datasets, transforms
 
 
-################################################################################
+#==============================================================================#
 #           0. MNIST                                                           #
-################################################################################
+#==============================================================================#
 
     #--------------------------------------------------------------------------#
     #               0.0 begin defining landscape by providing data population  #
@@ -56,23 +56,27 @@ class MNIST(PointedLandscape):
     #               0.1 finish landscape definition by providing architecture  #
     #--------------------------------------------------------------------------#
 
-class MnistAbstractArchitecture(MNIST):
+class MnistAbstractArchitecture(MNIST, FixedInitsLandscape):
+    '''
+    '''
     def __init__(self, digits=list(range(10)), weight_scale=1.0):
+        ''' '''
         super().__init__(digits)
         self.weight_scale = weight_scale
 
-    def reset_weights(self, weights=None):
+    def resample_weights(self, weights=None):
+        ''' '''
         self.subweight_offsets = [
             sum(prod(shape) for shape in self.subweight_shapes[:depth])
             for depth in range(len(self.subweight_shapes)+1) 
         ]
         self.subweight_scales = [
-            (shape[0] + prod(shape[1:]))**(-0.5)
+            self.weight_scale * (shape[0] + prod(shape[1:]))**(-0.5)
             for shape in self.subweight_shapes
         ]
 
         self.weights = torch.autograd.Variable(
-            self.weight_scale * torch.randn(self.subweight_offsets[-1], device=device)
+            torch.randn(self.subweight_offsets[-1], device=device)
             if weights is None else torch.Tensor(weights)
             ,
             requires_grad=True
@@ -85,12 +89,19 @@ class MnistAbstractArchitecture(MNIST):
         )
 
     def get_weights(self):
+        ''' '''
         return self.weights.detach().numpy()
 
+    def set_weights(self, weights):
+        ''' '''
+        self.weights.data = torch.Tensor(weights)
+
     def update_weights(self, displacement):
+        ''' '''
         self.weights.data += displacement.detach().data
 
     def nabla(self, scalar_stalk, create_graph=True):
+        ''' '''
         return torch.autograd.grad(
             scalar_stalk,
             self.weights,
@@ -98,24 +109,33 @@ class MnistAbstractArchitecture(MNIST):
         )[0] 
 
     def get_loss_stalk(self, data_indices):
+        ''' '''
         logits, labels = self.logits_and_labels(data_indices)
         return nll_loss(logits, labels)
 
     def get_accuracy(self, data_indices):
+        ''' '''
         logits, labels = self.logits_and_labels(data_indices)
         _, argmax = logits.max(1) 
         return argmax.eq(labels).sum() / labels.shape[0]
 
 class MnistLogistic(MnistAbstractArchitecture):
-    def __init__(self, digits=list(range(10)), weight_scale=0.01**(1.0/1)):
+    '''
+    '''
+    def __init__(self, digits=list(range(10)), weight_scale=1e-2, verbose=False):
+        ''' '''
         super().__init__(digits, weight_scale)
         self.subweight_shapes = [
             (self.nb_classes , 28*28        ), (self.nb_classes , 1            )
         ]
-        #print('Logistic has {} parameters'.format(sum(prod(w) for w in self.subweight_shapes)))
-        self.reset_weights()
+        self.resample_weights()
+        if verbose:
+            print('Logistic has {} parameters'.format(
+                sum(prod(w) for w in self.subweight_shapes)
+            ))
 
     def logits_and_labels(self, data_indices):
+        ''' '''
         x, y = self.imgs[data_indices], self.lbls[data_indices]
         x = x.view(-1, 28*28, 1)
         x = matmul(self.get_subweight(0), x) + self.get_subweight(1).unsqueeze(0)
@@ -123,42 +143,54 @@ class MnistLogistic(MnistAbstractArchitecture):
         return log_softmax(x, dim=1), y
 
     def get_loss_stalk(self, data_indices):
+        ''' '''
         logits, labels = self.logits_and_labels(data_indices)
         return nll_loss(logits, labels)
 
     def get_accuracy(self, data_indices):
+        ''' '''
         logits, labels = self.logits_and_labels(data_indices)
         _, argmax = logits.max(1) 
         return argmax.eq(labels).double().mean()
 
 
 class MnistMLP(MnistAbstractArchitecture):
-    def __init__(self, digits=list(range(10)), weight_scale=10**(-0.5), widthA=16, widthB=16):
+    '''
+    '''
+    def __init__(self, digits=list(range(10)), weight_scale=1e-1, width=16, verbose=False):
+        ''' '''
         super().__init__(digits, weight_scale)
         self.subweight_shapes = [
-            (widthA         ,  1     , 5, 5), 
-            (widthB         ,  widthA, 5, 5),
-            (self.nb_classes, 4*4*widthB)
+            (width           , 28*28        ), (width           , 1            ),
+            (self.nb_classes , width        ), (self.nb_classes , 1            ),
         ]
-        #print('MLP has {} parameters'.format(sum(prod(w) for w in self.subweight_shapes)))
-        self.widthA = widthA
-        self.widthB = widthB
-        self.reset_weights()
+
+        self.width = width
+        self.resample_weights()
+
+        if verbose:
+            print('MLP has {} parameters'.format(
+                sum(prod(w) for w in self.subweight_shapes)
+            ))
 
     def logits_and_labels(self, data_indices):
+        ''' '''
         x, y = self.imgs[data_indices], self.lbls[data_indices]
-        x = tanh(conv2d(x, self.get_subweight(0), bias=None, stride=2)) 
-        x = tanh(conv2d(x, self.get_subweight(1), bias=None, stride=2))
-        x = x.view(-1, 4 * 4* self.widthB, 1)
-        x =     matmul(self.get_subweight(2), x)
+
+        x = x.view(-1, 28*28, 1)
+        x = tanh(matmul(self.get_subweight(0), x) + self.get_subweight(1).unsqueeze(0))
+        x =      matmul(self.get_subweight(2), x) + self.get_subweight(3).unsqueeze(0)
+
         x = x.view(-1, self.nb_classes)
         return log_softmax(x, dim=1), y
 
     def get_loss_stalk(self, data_indices):
+        ''' '''
         logits, labels = self.logits_and_labels(data_indices)
         return nll_loss(logits, labels)
 
     def get_accuracy(self, data_indices):
+        ''' '''
         logits, labels = self.logits_and_labels(data_indices)
         _, argmax = logits.max(1) 
         return argmax.eq(labels).double().mean()
@@ -166,24 +198,31 @@ class MnistMLP(MnistAbstractArchitecture):
 
 
 class MnistLeNet(MnistAbstractArchitecture):
-    def __init__(self, digits=list(range(10)), weight_scale=10**(-0.5), widthA=20, widthB=20):
+    def __init__(self, digits=list(range(10)), weight_scale=1e0, widthA=16, widthB=16, widthC=16, verbose=False):
         super().__init__(digits, weight_scale)
         self.subweight_shapes = [
-            (widthA          ,  1     , 5, 5),      #(widthA,), 
-            (widthB          , widthA , 5, 5),      #(widthB,),
-            (self.nb_classes , 4*4*widthB ),        #(self.nb_classes, 1)
+            (widthA          ,  1     , 5, 5),      (widthA,), 
+            (widthB          , widthA , 5, 5),      (widthB,),
+            (widthC          , 4*4*widthB ),        (widthC         , 1),
+            (self.nb_classes , widthC     ),        (self.nb_classes, 1),
         ]
-        #print('LeNet has {} parameters'.format(sum(prod(w) for w in self.subweight_shapes)))
+
         self.widthA = widthA
         self.widthB = widthB
-        self.reset_weights()
+        self.resample_weights()
+
+        if verbose:
+            print('LeNet has {} parameters'.format(
+                sum(prod(w) for w in self.subweight_shapes)
+            ))
 
     def logits_and_labels(self, data_indices):
         x, y = self.imgs[data_indices], self.lbls[data_indices]
-        x = tanh(conv2d(x, self.get_subweight(0), bias=None, stride=2))
-        x = tanh(conv2d(x, self.get_subweight(1), bias=None, stride=2))
+        x = tanh(conv2d(x, self.get_subweight(0), bias=self.get_subweight(1), stride=2))
+        x = tanh(conv2d(x, self.get_subweight(2), bias=self.get_subweight(3), stride=2))
         x = x.view(-1, 4*4*self.widthB, 1)
-        x = matmul(self.get_subweight(2), x) 
+        x = tanh(matmul(self.get_subweight(4), x) + self.get_subweight(5))
+        x =      matmul(self.get_subweight(6), x) + self.get_subweight(7)
         x = x.view(-1, self.nb_classes)
         logits = log_softmax(x, dim=1)
         return logits, y
@@ -202,81 +241,78 @@ class MnistLeNet(MnistAbstractArchitecture):
     #               0.2 demonstrate interface by descending with grad stats    #
     #--------------------------------------------------------------------------#
 
-def grid_search(BATCH=1, TIME=200, NB_ITERS=10): 
-    for widthA in [16]:
-        for widthB in [16]:
-            print()
-            for LRATE in [10**i for i in [-3.0, -2.5, -2.0]]:
-                for weight_scale in [(10**i)**(1.0/2) for i in [1.5, 1.0, 0.5]]:
-                    accs = []
-                    for i in tqdm.tqdm(range(NB_ITERS)):
-                        ML = MnistMLP(
-                            digits=list(range(10)),
-                            weight_scale=weight_scale,
-                            widthA=widthA,
-                            widthB=widthB
-                        ) 
+def grid_search(TIME=1000, NB_ITERS=4): 
+    ''' '''
+    for LRATE in [10**i for i in [0.0, 0.5, 1.0]]:
+        for weight_scale in [10**i for i in [-1.0, -0.5, 0.0]]:
+            accs_train = []
+            accs_test = []
+            for i in tqdm.tqdm(range(NB_ITERS)):
+                ML = MnistMLP(
+                    digits=list(range(10)),
+                    weight_scale=weight_scale,
+                ) 
 
-                        for i in range(TIME):
-                            D = ML.sample_data(N=BATCH)
-                            L = ML.get_loss_stalk(D)
-                            G = ML.nabla(L)
-                            ML.update_weights(-LRATE * G)
+                D = ML.sample_data(N=TIME) 
+                for i in range(TIME):
+                    L = ML.get_loss_stalk(D[i:i+1])
+                    G = ML.nabla(L)
+                    ML.update_weights(-LRATE * G)
 
-                        acc = ML.get_accuracy(ML.sample_data(N=1000))
-                        accs.append(acc)
-                    print('\033[1A' + ' '*200 + '\033[1A')
-                    acc_mean = np.mean(accs)
-                    acc_stdv = np.std(accs)
-                    low_bd = int(100 * (acc_mean - 3 * acc_stdv/NB_ITERS**0.5))
-                    up_bd = int(100 * (acc_mean  + 3 * acc_stdv/NB_ITERS**0.5))
-                    print(CC + '@C lrate @G {:8.2e} @C \t widthA @B {} \t widthB @B {} \t ws {:8.2e} \t accs @M {:.3f} @C \t accm @Y {:.3f} \t @G {} @C '.format(
-                        LRATE, widthA, widthB, weight_scale, acc_stdv, acc_mean,
-                        '@G ' + '~'*(10) + '@R '
-                        '@G ' + '='*(low_bd-10-1) + '@R ' + str(low_bd) +
-                        '@Y ' + '-'*(up_bd-low_bd-2) + '@R ' + str(up_bd) +
-                        '@C ' + ' '*(100-up_bd-1)
-                    ))
+                accs_train.append(ML.get_accuracy(D))
+                accs_test.append(ML.get_accuracy(ML.sample_data(N=1000)))
+            print('\033[1A' + ' '*200 + '\033[1A')
+            acc_mean = np.mean(accs_test)
+            acc_stdv = np.std(accs_test)
+            low_bd = int(100 * (acc_mean - 3 * acc_stdv/NB_ITERS**0.5))
+            up_bd = int(100 * (acc_mean  + 3 * acc_stdv/NB_ITERS**0.5))
+            accuracy_bar = ''.join((
+                '@G ' + '~'*(10) + '@R ',
+                '@G ' + '='*(low_bd-10-1) + '@R ' + str(low_bd),
+                '@Y ' + '-'*(up_bd-low_bd-2) + '@R ' + str(up_bd),
+                '@C ' + ' '*(100-up_bd-1),
+            ))
+
+            print(CC + ' @C '.join((
+                'lrate @G {:8.2e}'.format(LRATE),
+                'wscale @B {:8.2e}'.format(weight_scale),
+                'train @O {:.2f}'.format(np.mean(accs_train)),
+                'accstdv @M {:.2f}'.format(acc_stdv),
+                'accmean @Y {:.2f}'.format(acc_mean),
+                accuracy_bar
+            )))
 
  
 if __name__=='__main__':
     #grid_search()
-    #ML = MnistLogistic(digits=list(range(10))) 
-    #LRATE = 10e-0
-
-
 
     BATCH = 1
+    TIME = 300
 
-    ML = MnistLeNet(digits=list(range(10))) 
-    LRATE = 10**0.5
-    #ML = MnistMLP(digits=list(range(10))) 
-    #LRATE = 10**0.0
+    model_nm = 'LENET'
+    model_data = {
+        'LOGISTIC': {'class': MnistLogistic, 'weight_scale': 10**(-2.0/1), 'lrate':1e+1, 'file_nm': 'mnist-logistic.npy'},
+        'MLP'     : {'class': MnistMLP,      'weight_scale': 10**(-2.0/2), 'lrate':1e+1, 'file_nm': 'mnist-mlp.npy'},
+        'LENET'   : {'class': MnistLeNet,    'weight_scale': 10**( 0.0/3), 'lrate':2e+1, 'file_nm': 'mnist-lenet.npy'},
+    }[model_nm]
+    ML = model_data['class'](weight_scale = model_data['weight_scale'], verbose=True)
+    ML.load_from('saved-weights/{}'.format(model_data['file_nm']), 12)
+    LRATE = model_data['lrate']
 
-    for i in range(300):
+    for i in range(TIME):
         D = ML.sample_data(N=BATCH)
         L = ML.get_loss_stalk(D)
         G = ML.nabla(L)
         ML.update_weights(-LRATE * G)
 
-        if (i+1)%10: continue
+        if (i+1)%25: continue
 
-        La, Lb, Lc = (ML.get_loss_stalk(ML.sample_data(N=1000)) for i in range(3))
-        acc = ML.get_accuracy(ML.sample_data(N=1000))
-        Ga, Gb, Gc = (ML.nabla(Lx) for Lx in (La, Lb, Lc))
-        GaGa, GaGb = (torch.dot(Ga, Gx) for Gx in (Ga, Gb)) 
-        #C = (GaGa-GaGb) * BATCH**2 / (BATCH-1.0) 
-        GaHcGa, GaHcGb = (
-            torch.dot(Gx, ML.nabla(torch.dot(Gc, Gy.detach())))
-            for Gx, Gy in ((Ga, Ga), (Ga, Gb)) 
-        )
-        CH = (GaHcGa-GaHcGb) * 25**2 / (25-1.0) 
+        L_test = ML.get_loss_stalk(ML.sample_data(N=3000))
+        acc = ML.get_accuracy(ML.sample_data(N=3000))
+
         print(CC+' @C \t'.join([
-            'after {:4d} steps'.format(i+1),
-            'batch loss @B {:.2f}'.format(L.detach().numpy()),
-            'test loss @B {:.2f}'.format(La.detach().numpy()),
-            'test acc @B {:.2f}'.format(acc.detach().numpy()),
-            'grad mag2 @G {:+.1e}'.format(GaGb.detach().numpy()),
-            #'trace cov @Y {:+.1e}'.format(C.detach().numpy()),
-            'cov hess @R {:+.1e}'.format(CH.detach().numpy()),
+            'after @M {:4d} @C steps'.format(i+1),
+            'batch loss @Y {:.2f}'.format(L.detach().numpy()),
+            'test loss @L {:.2f}'.format(L_test.detach().numpy()),
+            'test acc @O {:.2f}'.format(acc.detach().numpy()),
         '']))
