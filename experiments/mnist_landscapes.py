@@ -40,7 +40,7 @@ class MNIST(PointedLandscape):
             )      
             for train_flag in (True, False) 
         )
-        self.imgs = torch.cat([train_set.train_data  , test_set.test_data  ], dim=0).numpy()
+        self.imgs = torch.cat([train_set.train_data  , test_set.test_data  ], dim=0).numpy() / 255.0
         self.lbls = torch.cat([train_set.train_labels, test_set.test_labels], dim=0).numpy()
         indices_to_keep = np.array([i for i, lbl in enumerate(self.lbls) if lbl in digits])        
         self.imgs = torch.Tensor(self.imgs[indices_to_keep]).view(-1, 1, 28, 28)
@@ -51,6 +51,7 @@ class MNIST(PointedLandscape):
 
     def sample_data(self, N):
         return np.random.choice(self.idxs, N, replace=False)
+        #return self.idxs[:N]
 
     #--------------------------------------------------------------------------#
     #               0.1 finish landscape definition by providing architecture  #
@@ -71,7 +72,7 @@ class MnistAbstractArchitecture(MNIST, FixedInitsLandscape):
             for depth in range(len(self.subweight_shapes)+1) 
         ]
         self.subweight_scales = [
-            self.weight_scale * (shape[0] + prod(shape[1:]))**(-0.5)
+            self.weight_scale * (2.0 / (shape[0] + prod(shape[1:])))**0.5
             for shape in self.subweight_shapes
         ]
 
@@ -94,7 +95,8 @@ class MnistAbstractArchitecture(MNIST, FixedInitsLandscape):
 
     def set_weights(self, weights):
         ''' '''
-        self.weights.data = torch.Tensor(weights)
+        #self.weights.data = torch.Tensor(weights)
+        self.weights = torch.autograd.Variable(torch.Tensor(weights), requires_grad=True)
 
     def update_weights(self, displacement):
         ''' '''
@@ -122,7 +124,7 @@ class MnistAbstractArchitecture(MNIST, FixedInitsLandscape):
 class MnistLogistic(MnistAbstractArchitecture):
     '''
     '''
-    def __init__(self, digits=list(range(10)), weight_scale=1e-2, verbose=False):
+    def __init__(self, digits=list(range(10)), weight_scale=3.0, verbose=False):
         ''' '''
         super().__init__(digits, weight_scale)
         self.subweight_shapes = [
@@ -285,16 +287,17 @@ if __name__=='__main__':
     #grid_search()
 
     BATCH = 1
-    TIME = 1000
+    TIME = 100
 
-    model_nm = 'LENET'
+    model_nm = 'LOGISTIC'
     model_data = {
-        'LOGISTIC': {'class': MnistLogistic, 'weight_scale': 10**(-2.0/1), 'lrate':1e+0, 'file_nm': 'mnist-logistic.npy'},
-        'MLP'     : {'class': MnistMLP,      'weight_scale': 10**(-2.0/2), 'lrate':1e+0, 'file_nm': 'mnist-mlp.npy'},
-        'LENET'   : {'class': MnistLeNet,    'weight_scale': 10**(-1.0/3), 'lrate':1e+0, 'file_nm': 'mnist-lenet.npy'},
+        'LOGISTIC': {'class': MnistLogistic, 'weight_scale': 3.0**(1.0/1), 'lrate':1e-1, 'file_nm': 'mnist-logistic.npy'},
+        'MLP'     : {'class': MnistMLP,      'weight_scale': 1.0**(1.0/2), 'lrate':1e-2, 'file_nm': 'mnist-mlp.npy'},
+        'LENET'   : {'class': MnistLeNet,    'weight_scale': 1.0**(1.0/3), 'lrate':1e-2, 'file_nm': 'mnist-lenet.npy'},
     }[model_nm]
     ML = model_data['class'](weight_scale = model_data['weight_scale'], verbose=True)
     ML.load_from('saved-weights/{}'.format(model_data['file_nm']), 12)
+    ML.switch_to(0)
     LRATE = model_data['lrate']
 
     D = ML.sample_data(N=TIME) 
@@ -303,14 +306,17 @@ if __name__=='__main__':
         G = ML.nabla(L)
         ML.update_weights(-LRATE * G)
 
-        if (i+1)%25: continue
+        if (i+1)%1: continue
 
         L_train= ML.get_loss_stalk(D)
-        L_test = ML.get_loss_stalk(ML.sample_data(N=3000))
+        data = ML.sample_data(N=3000)
+        L_test = ML.get_loss_stalk(data[:1500])
+        L_test_= ML.get_loss_stalk(data[1500:])
         acc = ML.get_accuracy(ML.sample_data(N=3000))
 
         print(CC+' @C \t'.join([
             'after @M {:4d} @C steps'.format(i+1),
+            'grad2 @G {:.2e}'.format(ML.nabla(L_test).dot(ML.nabla(L_test_)).detach().numpy()),
             'train loss @Y {:.2f}'.format(L_train.detach().numpy()),
             'test loss @L {:.2f}'.format(L_test.detach().numpy()),
             'test acc @O {:.2f}'.format(acc.detach().numpy()),

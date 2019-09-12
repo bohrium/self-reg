@@ -124,7 +124,7 @@ def plot_SGD():
 
     finish_plot(
         #title='Prediction of SGD \n(test loss after 100 steps on mnist-10 logistic)'.format(
-        title='Prediction of SGD \n(test loss after 100 steps on mnist-10 lenet)'.format(
+        title='Prediction of SGD \n(test loss after {} steps on mnist-10 lenet)'.format(
             okey.T
         ), xlabel='learning rate', ylabel='test loss', img_filenm=IMG_FILENM
     )

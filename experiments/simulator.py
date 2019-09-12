@@ -13,17 +13,17 @@ from quad_landscapes import Quadratic
 import torch
 import tqdm
 
-def compute_losses(land, eta, T, N, I=1):
+def compute_losses(land, eta, T, N, I=1, idx=None):
     assert N%2==0, 'GDC simulator needs N to be even for covariance estimation'
     ol = OptimLog()
+
     for i in tqdm.tqdm(range(I)):
         D = land.sample_data(2*N) 
         D_train, D_test = D[:N], D[N:]
-        land.reset_weights()
-        w0 = land.get_weights()
 
         # SGD:
-        land.reset_weights(w0)
+        #land.resample_weights()
+        land.switch_to(idx)
         for t in range(T):
             loss_stalk = land.get_loss_stalk(D_train[(t%N):(t%N)+1]) 
             grad = land.nabla(loss_stalk, False).detach()
@@ -34,7 +34,7 @@ def compute_losses(land, eta, T, N, I=1):
         ol.accum(OptimKey(optimizer='sgd', beta=0.0, eta=eta, N=N, T=T, metric='testacc'), sgd_test_acc)
 
         ## GD:
-        #land.reset_weights(w0)
+        #land.resample_weights(w0)
         #for t in range(T):
         #    loss_stalk = land.get_loss_stalk(D_train)
         #    grad = land.nabla(loss_stalk, False).detach()
@@ -47,7 +47,7 @@ def compute_losses(land, eta, T, N, I=1):
 
         ## GDC:
         #for BETA in [10**-3.0, 10**-2.5, 10**-2.0, 10**-1.5, 10**-1.0]:
-        #    land.reset_weights(w0)
+        #    land.resample_weights(w0)
         #    for t in range(T):
         #        gradA = land.nabla(land.get_loss_stalk(D_train[:int(N//2)]))
         #        gradB = land.nabla(land.get_loss_stalk(D_train[int(N//2):]))
@@ -77,13 +77,25 @@ if __name__=='__main__':
     #    for T in [100]:
     #        ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(10000.0/(T+1))))
 
-    LC = MnistLeNet(digits=list(range(10)))
+
+    #LC = MnistLogistic(digits=list(range(10)))
+    #LC.load_from('saved-weights/mnist-logistic.npy')
+    #for i in range(10):
+    #    eta = 0.0
+    #    T = 10
+    #    LC.switch_to(0)
+    #    #sgd_test_loss = LC.get_loss_stalk(LC.sample_data(10))
+    #    sgd_test_loss = compute_losses(LC, eta=eta, T=T, N=T, I=int(10000.0/(T+1)), idx=0)
+    #    print('#'*8, sgd_test_loss.detach().numpy())
+    #    input()
+
+
+    LC = MnistLogistic(digits=list(range(10)))
+    LC.load_from('saved-weights/mnist-logistic.npy')
     ol = OptimLog()
-    for eta in tqdm.tqdm(np.arange( 0.0, 0.5, 0.1 )):
+    for eta in tqdm.tqdm(np.arange( 0.0, 0.011, 0.002 )):
         for T in [100]:
-            ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(10000.0/(T+1))))
-
-
+            ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(10000.0/(T+1)), idx=0))
 
     print(ol)
     with open('ol.data', 'w') as f:
