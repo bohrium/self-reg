@@ -328,24 +328,24 @@ if __name__ == '__main__':
 
 
     from mnist_landscapes import MnistLogistic, MnistLeNet, MnistMLP
-    for idx in range(1):
-        #LC = MnistLeNet(digits=list(range(10)))
-        #LC.load_from('saved-weights/mnist-lenet.npy')
-        #grad_stats = str(compute_grad_stats(LC, N=16, I=20000, idx=idx))
-        #with open('gs-new-lenet-{:02d}.data'.format(idx), 'w') as f:
-        #    f.write(grad_stats)
+    LC = MnistLeNet(digits=list(range(10)))
+    LC.load_from('saved-weights/mnist-lenet.npy')
+    for idx in range(12):
+        grad_stats = str(compute_grad_stats(LC, N=16, I=20000, idx=idx))
+        with open('gs-new-lenet-{:02d}.data'.format(idx), 'w') as f:
+            f.write(grad_stats.replace('nan', 'None'))
 
         #LC = MnistMLP(digits=list(range(10)))
         #LC.load_from('saved-weights/mnist-mlp.npy')
         #grad_stats = str(compute_grad_stats(LC, N=16, I=20000, idx=idx))
         #with open('gs-new-mlp-{:02d}.data'.format(idx), 'w') as f:
-        #    f.write(grad_stats)
+        #    f.write(grad_stats.replace('nan', 'None'))
 
-        LC = MnistLogistic(digits=list(range(10)))
-        LC.load_from('saved-weights/mnist-logistic.npy')
-        grad_stats = str(compute_grad_stats(LC, N=16, I=2000, idx=idx))
-        with open('gs-new-logistic-{:02d}.data'.format(idx), 'w') as f:
-            f.write(grad_stats.replace('nan', 'None'))
+        #LC = MnistLogistic(digits=list(range(10)))
+        #LC.load_from('saved-weights/mnist-logistic.npy')
+        #grad_stats = str(compute_grad_stats(LC, N=16, I=20000, idx=idx))
+        #with open('gs-new-logistic-{:02d}.data'.format(idx), 'w') as f:
+        #    f.write(grad_stats.replace('nan', 'None'))
 
 
     #test_derivator_on_cosh()

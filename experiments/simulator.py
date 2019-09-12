@@ -90,16 +90,19 @@ if __name__=='__main__':
     #    input()
 
 
-    LC = MnistLogistic(digits=list(range(10)))
-    LC.load_from('saved-weights/mnist-logistic.npy')
-    ol = OptimLog()
-    for eta in tqdm.tqdm(np.arange( 0.0, 0.011, 0.002 )):
-        for T in [100]:
-            ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(10000.0/(T+1)), idx=0))
+    #LC = MnistLogistic(digits=list(range(10)))
+    #LC.load_from('saved-weights/mnist-logistic.npy')
 
-    print(ol)
-    with open('ol.data', 'w') as f:
-        f.write(str(ol))
+    LC = MnistLeNet(digits=list(range(10)))
+    LC.load_from('saved-weights/mnist-lenet.npy')
+    for idx in range(12):
+        ol = OptimLog()
+        for eta in tqdm.tqdm(np.arange( 0.0, 0.051, 0.005 )):
+            for T in [100]:
+                ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(30000.0/(T+1)), idx=idx))
+
+        with open('ol-lenet-{:02d}.data'.format(idx), 'w') as f:
+            f.write(str(ol))
 
 
 

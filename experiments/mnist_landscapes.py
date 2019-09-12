@@ -124,7 +124,7 @@ class MnistAbstractArchitecture(MNIST, FixedInitsLandscape):
 class MnistLogistic(MnistAbstractArchitecture):
     '''
     '''
-    def __init__(self, digits=list(range(10)), weight_scale=3.0, verbose=False):
+    def __init__(self, digits=list(range(10)), weight_scale=1.0, verbose=False):
         ''' '''
         super().__init__(digits, weight_scale)
         self.subweight_shapes = [
@@ -159,7 +159,7 @@ class MnistLogistic(MnistAbstractArchitecture):
 class MnistMLP(MnistAbstractArchitecture):
     '''
     '''
-    def __init__(self, digits=list(range(10)), weight_scale=1e-1, width=32, verbose=False):
+    def __init__(self, digits=list(range(10)), weight_scale=1.0, width=32, verbose=False):
         ''' '''
         super().__init__(digits, weight_scale)
         self.subweight_shapes = [
@@ -200,7 +200,7 @@ class MnistMLP(MnistAbstractArchitecture):
 
 
 class MnistLeNet(MnistAbstractArchitecture):
-    def __init__(self, digits=list(range(10)), weight_scale=10**(-1.0/3), widthA= 8, widthB=16, verbose=False):
+    def __init__(self, digits=list(range(10)), weight_scale=1.0, widthA= 8, widthB=16, verbose=False):
         super().__init__(digits, weight_scale)
         self.subweight_shapes = [
             (widthA          ,  1     , 5, 5),      (widthA,), 
@@ -289,11 +289,11 @@ if __name__=='__main__':
     BATCH = 1
     TIME = 100
 
-    model_nm = 'LOGISTIC'
+    model_nm = 'LENET'
     model_data = {
-        'LOGISTIC': {'class': MnistLogistic, 'weight_scale': 3.0**(1.0/1), 'lrate':1e-1, 'file_nm': 'mnist-logistic.npy'},
-        'MLP'     : {'class': MnistMLP,      'weight_scale': 1.0**(1.0/2), 'lrate':1e-2, 'file_nm': 'mnist-mlp.npy'},
-        'LENET'   : {'class': MnistLeNet,    'weight_scale': 1.0**(1.0/3), 'lrate':1e-2, 'file_nm': 'mnist-lenet.npy'},
+        'LOGISTIC': {'class': MnistLogistic, 'weight_scale': 1.0**(1.0/1), 'lrate':1e-1, 'file_nm': 'mnist-logistic.npy'},
+        'MLP'     : {'class': MnistMLP,      'weight_scale': 1.0**(1.0/2), 'lrate':1e-1, 'file_nm': 'mnist-mlp.npy'},
+        'LENET'   : {'class': MnistLeNet,    'weight_scale': 1.0**(1.0/3), 'lrate':1e-1, 'file_nm': 'mnist-lenet.npy'},
     }[model_nm]
     ML = model_data['class'](weight_scale = model_data['weight_scale'], verbose=True)
     ML.load_from('saved-weights/{}'.format(model_data['file_nm']), 12)
@@ -306,7 +306,7 @@ if __name__=='__main__':
         G = ML.nabla(L)
         ML.update_weights(-LRATE * G)
 
-        if (i+1)%1: continue
+        if (i+1)%10: continue
 
         L_train= ML.get_loss_stalk(D)
         data = ML.sample_data(N=3000)
