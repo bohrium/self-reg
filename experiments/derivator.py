@@ -12,7 +12,7 @@ from gradstats import grad_stat_names, GradStats
 import torch
 import tqdm
 
-def compute_grad_stats(land, N, I=1, idx=None):
+def compute_grad_stats(land, N, I=1, idx=None, third_order=False):
     nab = land.nabla
 
     gs = GradStats()
@@ -75,126 +75,128 @@ def compute_grad_stats(land, N, I=1, idx=None):
                 -     gs.recent('(01-02)(0-1-2)') * (N-1)*(N-2)
             ))
 
-            ##tree
-            #gs.accum('(01-02-03)(0-1-2-3)', (
-            #    nab(nab(GA.dot(GB_)).dot(GC_)).dot(GD)
-            #))
-            ##tree leaves
-            #gs.accum('(01-02-03)(0-1-23)', (
-            #    nab(nab(GA.dot(GB_)).dot(GC_)).dot(GC) * N
-            #    -     gs.recent('(01-02-03)(0-1-2-3)') * (N-1)
-            #))
-            ##tree branch
-            #gs.accum('(01-02-03)(01-2-3)', (
-            #    nab(nab(GA.dot(GB_)).dot(GC_)).dot(GA) * N
-            #    -     gs.recent('(01-02-03)(0-1-2-3)') * (N-1)
-            #))
-            ##tree but root 
-            #gs.accum('(01-02-03)(0-123)', (
-            #    nab(nab(GA.dot(GC_)).dot(GC_)).dot(GC) * N*N
-            #    - 3 * gs.recent('(01-02-03)(0-1-23)')  * (N-1)
-            #    -     gs.recent('(01-02-03)(0-1-2-3)') * (N-1)*(N-2)
-            #))
-            ##tree but leaf
-            #gs.accum('(01-02-03)(012-3)', (
-            #    nab(nab(GA.dot(GA_)).dot(GA_)).dot(GC) * N*N
-            #    - 2 * gs.recent('(01-02-03)(01-2-3)')  * (N-1)
-            #    -     gs.recent('(01-02-03)(0-1-23)')  * (N-1)
-            #    -     gs.recent('(01-02-03)(0-1-2-3)') * (N-1)*(N-2)
-            #))
-            ##tree split
-            #gs.accum('(01-02-03)(01-23)', (
-            #    nab(nab(GA.dot(GA_)).dot(GC_)).dot(GC) * N*N
-            #    -     gs.recent('(01-02-03)(01-2-3)')  * (N-1)
-            #    -     gs.recent('(01-02-03)(0-1-23)')  * (N-1)
-            #    -     gs.recent('(01-02-03)(0-1-2-3)') * (N-1)*(N-1)
-            #))
-            ##tree all
-            #gs.accum('(01-02-03)(0123)', (
-            #    nab(nab(GA.dot(GA_)).dot(GA_)).dot(GA) * N*N*N
-            #    - 3 * gs.recent('(01-02-03)(01-23)')   * (N-1)
-            #    - 3 * gs.recent('(01-02-03)(012-3)')   * (N-1)
-            #    -     gs.recent('(01-02-03)(0-123)')   * (N-1)
-            #    - 3 * gs.recent('(01-02-03)(01-2-3)')  * (N-1)*(N-2)
-            #    - 3 * gs.recent('(01-02-03)(0-1-23)')  * (N-1)*(N-2)
-            #    -     gs.recent('(01-02-03)(0-1-2-3)') * (N-1)*(N-2)*(N-3)
-            #))
+            if not third_order: continue
 
-            ##vine
-            #gs.accum('(01-02-13)(0-1-2-3)', (
-            #    nab(GC_.dot(GA)).dot(nab(GB.dot(GD_)))
-            #))
-            ##vine leaves 
-            #gs.accum('(01-02-13)(0-1-23)', (
-            #    nab(GC_.dot(GA)).dot(nab(GB.dot(GC_))) * N
-            #    - gs.recent('(01-02-13)(0-1-2-3)') * (N-1)
-            #))
-            ##vine alternating
-            #gs.accum('(01-02-13)(0-12-3)', (
-            #    nab(GC_.dot(GA)).dot(nab(GC.dot(GD_))) * N
-            #    - gs.recent('(01-02-13)(0-1-2-3)') * (N-1)
-            #))
-            ##vine branch 
-            #gs.accum('(01-02-13)(0-13-2)', (
-            #    nab(GA_.dot(GA)).dot(nab(GB.dot(GD_))) * N
-            #    - gs.recent('(01-02-13)(0-1-2-3)') * (N-1)
-            #))
-            ##vine middle
-            #gs.accum('(01-02-13)(01-2-3)', (
-            #    nab(GC_.dot(GA)).dot(nab(GA.dot(GD_))) * N
-            #    - gs.recent('(01-02-13)(0-1-2-3)') * (N-1)
-            #))
+            #tree
+            gs.accum('(01-02-03)(0-1-2-3)', (
+                nab(nab(GA.dot(GB_)).dot(GC_)).dot(GD)
+            ))
+            #tree leaves
+            gs.accum('(01-02-03)(0-1-23)', (
+                nab(nab(GA.dot(GB_)).dot(GC_)).dot(GC) * N
+                -     gs.recent('(01-02-03)(0-1-2-3)') * (N-1)
+            ))
+            #tree branch
+            gs.accum('(01-02-03)(01-2-3)', (
+                nab(nab(GA.dot(GB_)).dot(GC_)).dot(GA) * N
+                -     gs.recent('(01-02-03)(0-1-2-3)') * (N-1)
+            ))
+            #tree but root 
+            gs.accum('(01-02-03)(0-123)', (
+                nab(nab(GA.dot(GC_)).dot(GC_)).dot(GC) * N*N
+                - 3 * gs.recent('(01-02-03)(0-1-23)')  * (N-1)
+                -     gs.recent('(01-02-03)(0-1-2-3)') * (N-1)*(N-2)
+            ))
+            #tree but leaf
+            gs.accum('(01-02-03)(012-3)', (
+                nab(nab(GA.dot(GA_)).dot(GA_)).dot(GC) * N*N
+                - 2 * gs.recent('(01-02-03)(01-2-3)')  * (N-1)
+                -     gs.recent('(01-02-03)(0-1-23)')  * (N-1)
+                -     gs.recent('(01-02-03)(0-1-2-3)') * (N-1)*(N-2)
+            ))
+            #tree split
+            gs.accum('(01-02-03)(01-23)', (
+                nab(nab(GA.dot(GA_)).dot(GC_)).dot(GC) * N*N
+                -     gs.recent('(01-02-03)(01-2-3)')  * (N-1)
+                -     gs.recent('(01-02-03)(0-1-23)')  * (N-1)
+                -     gs.recent('(01-02-03)(0-1-2-3)') * (N-1)*(N-1)
+            ))
+            #tree all
+            gs.accum('(01-02-03)(0123)', (
+                nab(nab(GA.dot(GA_)).dot(GA_)).dot(GA) * N*N*N
+                - 3 * gs.recent('(01-02-03)(01-23)')   * (N-1)
+                - 3 * gs.recent('(01-02-03)(012-3)')   * (N-1)
+                -     gs.recent('(01-02-03)(0-123)')   * (N-1)
+                - 3 * gs.recent('(01-02-03)(01-2-3)')  * (N-1)*(N-2)
+                - 3 * gs.recent('(01-02-03)(0-1-23)')  * (N-1)*(N-2)
+                -     gs.recent('(01-02-03)(0-1-2-3)') * (N-1)*(N-2)*(N-3)
+            ))
+
+            #vine
+            gs.accum('(01-02-13)(0-1-2-3)', (
+                nab(GC_.dot(GA)).dot(nab(GB.dot(GD_)))
+            ))
+            #vine leaves 
+            gs.accum('(01-02-13)(0-1-23)', (
+                nab(GC_.dot(GA)).dot(nab(GB.dot(GC_))) * N
+                - gs.recent('(01-02-13)(0-1-2-3)') * (N-1)
+            ))
+            #vine alternating
+            gs.accum('(01-02-13)(0-12-3)', (
+                nab(GC_.dot(GA)).dot(nab(GC.dot(GD_))) * N
+                - gs.recent('(01-02-13)(0-1-2-3)') * (N-1)
+            ))
+            #vine branch 
+            gs.accum('(01-02-13)(0-13-2)', (
+                nab(GA_.dot(GA)).dot(nab(GB.dot(GD_))) * N
+                - gs.recent('(01-02-13)(0-1-2-3)') * (N-1)
+            ))
+            #vine middle
+            gs.accum('(01-02-13)(01-2-3)', (
+                nab(GC_.dot(GA)).dot(nab(GA.dot(GD_))) * N
+                - gs.recent('(01-02-13)(0-1-2-3)') * (N-1)
+            ))
 
 
-            ##vine but middle
-            #gs.accum('(01-02-13)(0-123)', (
-            #    nab(GC_.dot(GA)).dot(nab(GC.dot(GC_))) * N*N
-            #    -     gs.recent('(01-02-13)(0-13-2)')  * (N-1)
-            #    -     gs.recent('(01-02-13)(0-12-3)')  * (N-1)
-            #    -     gs.recent('(01-02-13)(0-1-23)')  * (N-1)
-            #    -     gs.recent('(01-02-13)(0-1-2-3)') * (N-1)*(N-2)
-            #))
-            ##vine but leaf 
-            #gs.accum('(01-02-13)(012-3)', (
-            #    nab(GC_.dot(GA)).dot(nab(GA.dot(GA_))) * N*N
-            #    -     gs.recent('(01-02-13)(0-13-2)')  * (N-1)
-            #    -     gs.recent('(01-02-13)(0-12-3)')  * (N-1)
-            #    -     gs.recent('(01-02-13)(01-2-3)')  * (N-1)
-            #    -     gs.recent('(01-02-13)(0-1-2-3)') * (N-1)*(N-2)
-            #))
-            ##vine split middle leaves 
-            #gs.accum('(01-02-13)(01-23)', (
-            #    nab(GC_.dot(GA)).dot(nab(GA.dot(GC_))) * N*N
-            #    -     gs.recent('(01-02-13)(01-2-3)')  * (N-1)
-            #    -     gs.recent('(01-02-13)(0-1-23)')  * (N-1)
-            #    -     gs.recent('(01-02-13)(0-1-2-3)') * (N-1)*(N-1)
-            #))
-            ##vine split branches
-            #gs.accum('(01-02-13)(02-13)', (
-            #    nab(GC_.dot(GC)).dot(nab(GA.dot(GA_))) * N*N
-            #    - 2 * gs.recent('(01-02-13)(0-13-2)')  * (N-1)
-            #    -     gs.recent('(01-02-13)(0-1-2-3)') * (N-1)*(N-1)
-            #))
-            ##vine split alternating
-            #gs.accum('(01-02-13)(03-12)', (
-            #    nab(GC_.dot(GA)).dot(nab(GC.dot(GA_))) * N*N
-            #    - 2 * gs.recent('(01-02-13)(0-12-3)')  * (N-1)
-            #    -     gs.recent('(01-02-13)(0-1-2-3)') * (N-1)*(N-1)
-            #))
-            ##vine all
-            #gs.accum('(01-02-13)(0123)', (
-            #    nab(GA_.dot(GA)).dot(nab(GA.dot(GA_))) * N*N*N
-            #    -     gs.recent('(01-02-13)(0-1-2-3)') * (N-1)*(N-2)*(N-3)
-            #    - 2 * gs.recent('(01-02-13)(0-12-3)') * (N-1)*(N-2)
-            #    - 2 * gs.recent('(01-02-13)(0-13-2)') * (N-1)*(N-2)
-            #    -     gs.recent('(01-02-13)(01-2-3)') * (N-1)*(N-2)
-            #    -     gs.recent('(01-02-13)(0-1-23)') * (N-1)*(N-2)
-            #    - 2 * gs.recent('(01-02-13)(0-123)') * (N-1)
-            #    - 2 * gs.recent('(01-02-13)(012-3)') * (N-1)
-            #    -     gs.recent('(01-02-13)(01-23)') * (N-1)
-            #    -     gs.recent('(01-02-13)(02-13)') * (N-1)
-            #    -     gs.recent('(01-02-13)(03-12)') * (N-1)
-            #))
+            #vine but middle
+            gs.accum('(01-02-13)(0-123)', (
+                nab(GC_.dot(GA)).dot(nab(GC.dot(GC_))) * N*N
+                -     gs.recent('(01-02-13)(0-13-2)')  * (N-1)
+                -     gs.recent('(01-02-13)(0-12-3)')  * (N-1)
+                -     gs.recent('(01-02-13)(0-1-23)')  * (N-1)
+                -     gs.recent('(01-02-13)(0-1-2-3)') * (N-1)*(N-2)
+            ))
+            #vine but leaf 
+            gs.accum('(01-02-13)(012-3)', (
+                nab(GC_.dot(GA)).dot(nab(GA.dot(GA_))) * N*N
+                -     gs.recent('(01-02-13)(0-13-2)')  * (N-1)
+                -     gs.recent('(01-02-13)(0-12-3)')  * (N-1)
+                -     gs.recent('(01-02-13)(01-2-3)')  * (N-1)
+                -     gs.recent('(01-02-13)(0-1-2-3)') * (N-1)*(N-2)
+            ))
+            #vine split middle leaves 
+            gs.accum('(01-02-13)(01-23)', (
+                nab(GC_.dot(GA)).dot(nab(GA.dot(GC_))) * N*N
+                -     gs.recent('(01-02-13)(01-2-3)')  * (N-1)
+                -     gs.recent('(01-02-13)(0-1-23)')  * (N-1)
+                -     gs.recent('(01-02-13)(0-1-2-3)') * (N-1)*(N-1)
+            ))
+            #vine split branches
+            gs.accum('(01-02-13)(02-13)', (
+                nab(GC_.dot(GC)).dot(nab(GA.dot(GA_))) * N*N
+                - 2 * gs.recent('(01-02-13)(0-13-2)')  * (N-1)
+                -     gs.recent('(01-02-13)(0-1-2-3)') * (N-1)*(N-1)
+            ))
+            #vine split alternating
+            gs.accum('(01-02-13)(03-12)', (
+                nab(GC_.dot(GA)).dot(nab(GC.dot(GA_))) * N*N
+                - 2 * gs.recent('(01-02-13)(0-12-3)')  * (N-1)
+                -     gs.recent('(01-02-13)(0-1-2-3)') * (N-1)*(N-1)
+            ))
+            #vine all
+            gs.accum('(01-02-13)(0123)', (
+                nab(GA_.dot(GA)).dot(nab(GA.dot(GA_))) * N*N*N
+                -     gs.recent('(01-02-13)(0-1-2-3)') * (N-1)*(N-2)*(N-3)
+                - 2 * gs.recent('(01-02-13)(0-12-3)') * (N-1)*(N-2)
+                - 2 * gs.recent('(01-02-13)(0-13-2)') * (N-1)*(N-2)
+                -     gs.recent('(01-02-13)(01-2-3)') * (N-1)*(N-2)
+                -     gs.recent('(01-02-13)(0-1-23)') * (N-1)*(N-2)
+                - 2 * gs.recent('(01-02-13)(0-123)') * (N-1)
+                - 2 * gs.recent('(01-02-13)(012-3)') * (N-1)
+                -     gs.recent('(01-02-13)(01-23)') * (N-1)
+                -     gs.recent('(01-02-13)(02-13)') * (N-1)
+                -     gs.recent('(01-02-13)(03-12)') * (N-1)
+            ))
 
     return gs
 
@@ -330,8 +332,8 @@ if __name__ == '__main__':
     from mnist_landscapes import MnistLogistic, MnistLeNet, MnistMLP
     LC = MnistLeNet(digits=list(range(10)))
     LC.load_from('saved-weights/mnist-lenet.npy')
-    for idx in range(12):
-        grad_stats = str(compute_grad_stats(LC, N=16, I=20000, idx=idx))
+    for idx in range(8, 12):
+        grad_stats = str(compute_grad_stats(LC, N=16, I=2000, idx=idx, third_order=True))
         with open('gs-new-lenet-{:02d}.data'.format(idx), 'w') as f:
             f.write(grad_stats.replace('nan', 'None'))
 

@@ -22,7 +22,6 @@ def compute_losses(land, eta, T, N, I=1, idx=None):
         D_train, D_test = D[:N], D[N:]
 
         # SGD:
-        #land.resample_weights()
         land.switch_to(idx)
         for t in range(T):
             loss_stalk = land.get_loss_stalk(D_train[(t%N):(t%N)+1]) 
@@ -33,36 +32,38 @@ def compute_losses(land, eta, T, N, I=1, idx=None):
         sgd_test_acc = land.get_accuracy(D_test)
         ol.accum(OptimKey(optimizer='sgd', beta=0.0, eta=eta, N=N, T=T, metric='testacc'), sgd_test_acc)
 
-        ## GD:
-        #land.resample_weights(w0)
-        #for t in range(T):
-        #    loss_stalk = land.get_loss_stalk(D_train)
-        #    grad = land.nabla(loss_stalk, False).detach()
-        #    land.update_weights(-eta*grad)
-        #gd_test_loss = land.get_loss_stalk(D_test)
-        #ol.accum(OptimKey(optimizer='gd', beta=0.0, eta=eta, N=N, T=T, metric='test'), gd_test_loss)
-        #gd_test_acc = land.get_accuracy(D_test)
-        #ol.accum(OptimKey(optimizer='gd', beta=0.0, eta=eta, N=N, T=T, metric='testacc'), gd_test_acc)
+        # GD:
+        land.switch_to(idx)
+        for t in range(T):
+            loss_stalk = land.get_loss_stalk(D_train)
+            grad = land.nabla(loss_stalk, False).detach()
+            land.update_weights(-eta*grad)
+        gd_test_loss = land.get_loss_stalk(D_test)
+        ol.accum(OptimKey(optimizer='gd', beta=0.0, eta=eta, N=N, T=T, metric='test'), gd_test_loss)
+        gd_test_acc = land.get_accuracy(D_test)
+        ol.accum(OptimKey(optimizer='gd', beta=0.0, eta=eta, N=N, T=T, metric='testacc'), gd_test_acc)
 
 
-        ## GDC:
+        # GDC:
         #for BETA in [10**-3.0, 10**-2.5, 10**-2.0, 10**-1.5, 10**-1.0]:
-        #    land.resample_weights(w0)
-        #    for t in range(T):
-        #        gradA = land.nabla(land.get_loss_stalk(D_train[:int(N//2)]))
-        #        gradB = land.nabla(land.get_loss_stalk(D_train[int(N//2):]))
-        #        traceC = gradA.dot(gradA-gradB) * (N*N/4)  
-        #        grad = ((gradA + gradB)/2).detach()
-        #        grad_traceC = land.nabla(traceC, False).detach() 
-        #        land.update_weights(-eta*( grad + BETA * grad_traceC ))
-        #    gdc_test_loss = land.get_loss_stalk(D_test)
-        #    ol.accum(OptimKey(optimizer='gdc', beta=BETA, eta=eta, N=N, T=T, metric='test'), gdc_test_loss)
-        #    gdc_test_acc = land.get_accuracy(D_test)
-        #    ol.accum(OptimKey(optimizer='gdc', beta=BETA, eta=eta, N=N, T=T, metric='testacc'), gdc_test_acc)
+        for BETA in [0.25, 1.0, 4.0]:
+            land.switch_to(idx)
+            for t in range(T):
+                gradA = land.nabla(land.get_loss_stalk(D_train[:int(N//2)]))
+                gradB = land.nabla(land.get_loss_stalk(D_train[int(N//2):]))
+                traceC = gradA.dot(gradA-gradB) * (N*N/4)  
+                grad = ((gradA + gradB)/2).detach()
+                grad_traceC = land.nabla(traceC, False).detach() 
+                land.update_weights(-eta*( grad + (BETA*eta*(N-1)/(4*N))*grad_traceC ))
+            gdc_test_loss = land.get_loss_stalk(D_test)
+            ol.accum(OptimKey(optimizer='gdc', beta=BETA, eta=eta, N=N, T=T, metric='test'), gdc_test_loss)
+            gdc_test_acc = land.get_accuracy(D_test)
+            ol.accum(OptimKey(optimizer='gdc', beta=BETA, eta=eta, N=N, T=T, metric='testacc'), gdc_test_acc)
 
-        ## differences: 
-        #ol.accum(OptimKey(optimizer='diff', beta=0.0, eta=eta, N=N, T=T, metric='test'), gd_test_loss-sgd_test_loss)
-        ##ol.accum(OptimKey(optimizer='diffc', eta=eta, N=N, T=T, metric='test'), gdc_test_loss-sgd_test_loss)
+            ol.accum(OptimKey(optimizer='diffc', beta=BETA, eta=eta, N=N, T=T, metric='test'), gdc_test_loss-sgd_test_loss)
+
+        # differences: 
+        ol.accum(OptimKey(optimizer='diff', beta=0.0, eta=eta, N=N, T=T, metric='test'), gd_test_loss-sgd_test_loss)
 
     return ol
 
@@ -95,13 +96,13 @@ if __name__=='__main__':
 
     LC = MnistLeNet(digits=list(range(10)))
     LC.load_from('saved-weights/mnist-lenet.npy')
-    for idx in range(12):
+    for idx in tqdm.tqdm(range(4, 8)):
         ol = OptimLog()
-        for eta in tqdm.tqdm(np.arange( 0.0, 0.051, 0.005 )):
-            for T in [100]:
-                ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(30000.0/(T+1)), idx=idx))
+        for eta in tqdm.tqdm(np.arange(0.1, 0.71, 0.2)):
+            for T in [10]:
+                ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(100000.0/(T+1)), idx=idx))
 
-        with open('ol-lenet-{:02d}.data'.format(idx), 'w') as f:
+        with open('ol-lenet-covreg-short-{:02d}.data'.format(idx), 'w') as f:
             f.write(str(ol))
 
 

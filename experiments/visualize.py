@@ -7,7 +7,7 @@
                 train-gd, train-sgd, train-gdc, train-diff, train-all
                 gen-gd,   gen-sgd,   gen-gdc,   gen-diff,   gen-all
             To run, type:
-                python visualize.py ol.data gs.data test-sgd out.png
+                python visualize.py new-data/ol-lenet-00.data new-data/gs-lenet-00.data test-sgd test-sgd-lenet-00.png
             The   optimlogs.data   gives   a filename storing descent trajectory summaries;
             the   gradstats.data   gives   a filename storing gradient statistic estimates;
             the   test-DIFF         gives   a plotting mode
@@ -110,8 +110,8 @@ def plot_SGD():
     Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=2) 
     plot_fill(X, Y, S, color=yellow, label='theory (deg 2 poly)')
     #
-    #Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=3) 
-    #plot_fill(X, Y, S, color=green, label='theory (deg 3 poly)')
+    Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=3) 
+    plot_fill(X, Y, S, color=green, label='theory (deg 3 poly)')
 
     #    Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=1) 
     #    plot_fill(X, Y, S, color=red, label='theory (deg 1 ode)')
@@ -133,12 +133,13 @@ def plot_SGD():
 def plot_OPT(): 
     prime_plot()
 
-    for opt, beta, color in [('sgd', 0.0, cyan), ('gd', 0.0, blue), ('gdc', 0.01, magenta)]:
+    #for opt, beta, color in [('diffc', 1.0, cyan), ('diff', 0.0, magenta)]:#[('sgd', 0.0, cyan), ('gd', 0.0, blue), ('gdc', 1.0, magenta)]:
+    for opt, beta, color in [('sgd', 0.0, cyan), ('gd', 0.0, blue), ('gdc', 0.25, magenta)]:
         (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, opt, beta) 
         plot_bars(X, Y, S, color=color, label=opt)
 
     finish_plot(
-        title='Comparison of Optimizers \n({} after {} steps on mnist-10 logistic)'.format(
+        title='Comparison of Optimizers \n({} after {} steps on mnist-10 lenet)'.format(
             metric,
             okey.T
         ), xlabel='learning rate', ylabel=metric, img_filenm=IMG_FILENM
@@ -159,7 +160,7 @@ def plot_BETA():
     )
  
  
-plot_SGD()
-#plot_OPT()
+#plot_SGD()
+plot_OPT()
 #plot_BETA()
 
