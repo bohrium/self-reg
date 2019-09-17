@@ -18,7 +18,7 @@ def compute_losses(land, eta, T, N, I=1, idx=None):
     ol = OptimLog()
 
     for i in tqdm.tqdm(range(I)):
-        D = land.sample_data(N + (N + 300)) 
+        D = land.sample_data(2*N) 
         D_train, D_test = D[:N], D[N:]
 
         # SGD:
@@ -52,7 +52,7 @@ def compute_losses(land, eta, T, N, I=1, idx=None):
             for t in range(T):
                 gradA = land.nabla(land.get_loss_stalk(D_train[:int(N//2)]))
                 gradB = land.nabla(land.get_loss_stalk(D_train[int(N//2):]))
-                traceC = gradA.dot(gradA-gradB) * (N//2)#(N*N/4)  
+                traceC = gradA.dot(gradA-gradB) * (N*N/4)  
                 grad = ((gradA + gradB)/2).detach()
                 grad_traceC = land.nabla(traceC, False).detach() 
                 land.update_weights(-eta*( grad + (BETA*eta*(N-1)/(4*N))*grad_traceC ))
@@ -97,13 +97,13 @@ if __name__=='__main__':
 
     LC = MnistLeNet(digits=list(range(10)))
     LC.load_from('saved-weights/mnist-lenet.npy')
-    for idx in tqdm.tqdm(range(0, 4)):
+    for idx in tqdm.tqdm(range(4, 8)):
         ol = OptimLog()
-        for eta in tqdm.tqdm(np.arange(0.05, 0.201, 0.05)):
+        for eta in tqdm.tqdm(np.arange(0.01, 0.031, 0.01)):
             for T in [100]:
                 ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(10000.0/(T+1)), idx=idx))
 
-        with open('ol-lenet-covreg-long-small-2n-{:02d}.data'.format(idx), 'w') as f:
+        with open('ol-lenet-covreg-long-{:02d}.data'.format(idx), 'w') as f:
             f.write(str(ol))
 
 

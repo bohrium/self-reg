@@ -133,8 +133,10 @@ def plot_SGD():
 def plot_OPT(): 
     prime_plot()
 
-    #for opt, beta, color in [('diffc', 1.0, cyan), ('diff', 0.0, magenta)]:#[('sgd', 0.0, cyan), ('gd', 0.0, blue), ('gdc', 1.0, magenta)]:
-    for opt, beta, color in [('sgd', 0.0, cyan), ('gd', 0.0, blue), ('gdc', 0.25, magenta)]:
+    #for opt, beta, color in [('sgd', 0.0, cyan), ('gd', 0.0, blue)]:#, ('gdc', 1.00, magenta)]:
+    #for opt, beta, color in [('sgd', 0.0, cyan), ('gdc', 1.00, magenta)]:
+    #for opt, beta, color in [('sgd', 0.0, cyan), ('gd', 0.0, blue), ('gdc', 1.00, magenta)]:
+    for opt, beta, color in [('diffc', 1.0, cyan), ('diff', 0.0, magenta)]:#[('sgd', 0.0, cyan), ('gd', 0.0, blue), ('gdc', 1.0, magenta)]:
         (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, opt, beta) 
         plot_bars(X, Y, S, color=color, label=opt)
 
