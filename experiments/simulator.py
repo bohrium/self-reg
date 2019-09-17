@@ -97,11 +97,11 @@ if __name__=='__main__':
 
     LC = MnistLeNet(digits=list(range(10)))
     LC.load_from('saved-weights/mnist-lenet.npy')
-    for idx in tqdm.tqdm(range(0, 4)):
+    for idx in tqdm.tqdm(range(4, 8)):
         ol = OptimLog()
-        for eta in tqdm.tqdm(np.arange(0.05, 0.201, 0.05)):
+        for eta in tqdm.tqdm(np.arange(0.04, 0.241, 0.04)):
             for T in [100]:
-                ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(10000.0/(T+1)), idx=idx))
+                ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(30000.0/(T+1)), idx=idx))
 
         with open('ol-lenet-covreg-long-small-2n-{:02d}.data'.format(idx), 'w') as f:
             f.write(str(ol))
