@@ -1,5 +1,5 @@
 ''' author: samtenka
-    change: 2019-06-17
+    change: 2019-08-17
     create: 2019-06-17
     descrp: do gradient descent on landscapes
 '''
@@ -13,7 +13,12 @@ from quad_landscapes import Quadratic
 import torch
 import tqdm
 
-def compute_losses(land, eta, T, N, I=1, idx=None):
+standard_optimizers = [
+    ('SGD', None),
+    ('GD', None),
+    ('GDC', 1.0),
+]
+def compute_losses(land, eta, T, N, I=1, idx=None, optimizers=standard_optimizers):
     assert N%2==0, 'GDC simulator needs N to be even for covariance estimation'
     ol = OptimLog()
 
@@ -21,50 +26,30 @@ def compute_losses(land, eta, T, N, I=1, idx=None):
         D = land.sample_data(N + (N + 300)) 
         D_train, D_test = D[:N], D[N:]
 
-        # SGD:
-        land.switch_to(idx)
-        for t in range(T):
-            loss_stalk = land.get_loss_stalk(D_train[(t%N):(t%N)+1]) 
-            grad = land.nabla(loss_stalk, False).detach()
-            land.update_weights(-eta*grad)
-        sgd_test_loss = land.get_loss_stalk(D_test)
-        ol.accum(OptimKey(optimizer='sgd', beta=0.0, eta=eta, N=N, T=T, metric='test'), sgd_test_loss)
-        sgd_test_acc = land.get_accuracy(D_test)
-        ol.accum(OptimKey(optimizer='sgd', beta=0.0, eta=eta, N=N, T=T, metric='testacc'), sgd_test_acc)
+        for opt, beta in optimizers: 
+            nabla = land.nabla
+            stalk = land.get_loss_stalk
 
-        # GD:
-        land.switch_to(idx)
-        for t in range(T):
-            loss_stalk = land.get_loss_stalk(D_train)
-            grad = land.nabla(loss_stalk, False).detach()
-            land.update_weights(-eta*grad)
-        gd_test_loss = land.get_loss_stalk(D_test)
-        ol.accum(OptimKey(optimizer='gd', beta=0.0, eta=eta, N=N, T=T, metric='test'), gd_test_loss)
-        gd_test_acc = land.get_accuracy(D_test)
-        ol.accum(OptimKey(optimizer='gd', beta=0.0, eta=eta, N=N, T=T, metric='testacc'), gd_test_acc)
+            compute_gradients = {
+                'SGD':  lambda t:  nabla(stalk(D_train[(t%N):(t%N)+1])),
+                'GD':   lambda t:  nabla(stalk(D_train               )),
+                'GDC':  lambda t: (nabla(stalk(D_train[:N//2]        )), nabla(stalk(D_train[N//2:]        ))),
+            }
+            compute_update = {
+                'SGD':  lambda g: g,
+                'GD':   lambda g: g,
+                'GDC':  lambda g: (g[0] + g[1])/2 + nabla(g[0].dot(g[0]-g[1]))*(N//2),
+            }[opt]
 
-
-        # GDC:
-        #for BETA in [10**-3.0, 10**-2.5, 10**-2.0, 10**-1.5, 10**-1.0]:
-        #for BETA in [0.25, 1.0, 4.0]:
-        for BETA in [0.25, 0.5, 1.0, 2.0, 4.0]:
             land.switch_to(idx)
             for t in range(T):
-                gradA = land.nabla(land.get_loss_stalk(D_train[:int(N//2)]))
-                gradB = land.nabla(land.get_loss_stalk(D_train[int(N//2):]))
-                traceC = gradA.dot(gradA-gradB) * (N//2)#(N*N/4)  
-                grad = ((gradA + gradB)/2).detach()
-                grad_traceC = land.nabla(traceC, False).detach() 
-                land.update_weights(-eta*( grad + (BETA*eta*(N-1)/(4*N))*grad_traceC ))
-            gdc_test_loss = land.get_loss_stalk(D_test)
-            ol.accum(OptimKey(optimizer='gdc', beta=BETA, eta=eta, N=N, T=T, metric='test'), gdc_test_loss)
-            gdc_test_acc = land.get_accuracy(D_test)
-            ol.accum(OptimKey(optimizer='gdc', beta=BETA, eta=eta, N=N, T=T, metric='testacc'), gdc_test_acc)
+                land.update_weights(-eta * update_computation(compute_gradients(t)).detach())
 
-            ol.accum(OptimKey(optimizer='diffc', beta=BETA, eta=eta, N=N, T=T, metric='test'), gdc_test_loss-sgd_test_loss)
+            sgd_test_loss = land.get_loss_stalk(D_test)
+            ol.accum(OptimKey(optimizer=opt.lower(), beta=beta, eta=eta, N=N, T=T, metric='test-loss'), sgd_test_loss)
 
-        # differences: 
-        ol.accum(OptimKey(optimizer='diff', beta=0.0, eta=eta, N=N, T=T, metric='test'), gd_test_loss-sgd_test_loss)
+            sgd_test_acc = land.get_accuracy(D_test)
+            ol.accum(OptimKey(optimizer=opt.lower(), beta=beta, eta=eta, N=N, T=T, metric='test-acc'), sgd_test_acc)
 
     return ol
 
