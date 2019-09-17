@@ -1,5 +1,5 @@
 ''' author: samtenka
-    change: 2019-09-10
+    change: 2019-09-17
     create: 2019-06-10
     descrp: define loss landscape type 
 '''
@@ -138,8 +138,3 @@ class FixedInitsLandscape(PointedLandscape):
     def switch_to(self, init_idx):  
         ''' switch current weight to that of the given index '''
         self.resample_weights(np.copy(self.inits[init_idx]))
-        #self.set_weights(self.inits[init_idx]) 
-
-        #print(CC + 'switched to initial weight @R {} @C of @R {} @C '.format(
-        #    init_idx, len(self.inits)
-        #))

@@ -164,7 +164,7 @@ def plot_BETA():
     )
  
  
-#plot_SGD()
+plot_SGD()
 #plot_OPT()
-plot_BETA()
+#plot_BETA()
 

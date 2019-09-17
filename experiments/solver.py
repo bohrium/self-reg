@@ -229,7 +229,6 @@ def solve(constraints, start_eta=0.1, mom_decay=0.95, start_noise=1.0, random_tr
         assignments = {v: best_assignments[v] - eta * moms[v] for v in fvs} 
         val = evaluate(expr, assignments) 
         if val <= best_val:
-            print(best_val)
             best_val, best_assignments = val, assignments
             eta *= 4.0/3
         else:
