@@ -47,7 +47,7 @@ def compute_losses(land, eta, T, N, I=1, idx=None):
         # GDC:
         #for BETA in [10**-3.0, 10**-2.5, 10**-2.0, 10**-1.5, 10**-1.0]:
         #for BETA in [0.25, 1.0, 4.0]:
-        for BETA in [1.0]:
+        for BETA in [0.25, 0.5, 1.0, 2.0, 4.0]:
             land.switch_to(idx)
             for t in range(T):
                 gradA = land.nabla(land.get_loss_stalk(D_train[:int(N//2)]))
@@ -101,9 +101,9 @@ if __name__=='__main__':
         ol = OptimLog()
         for eta in tqdm.tqdm(np.arange(0.04, 0.241, 0.04)):
             for T in [100]:
-                ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(30000.0/(T+1)), idx=idx))
+                ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(1000.0/(T+1)), idx=idx))
 
-        with open('ol-lenet-covreg-long-small-2n-{:02d}.data'.format(idx), 'w') as f:
+        with open('ol-lenet-covreg-scan-long-small-2n-{:02d}.data'.format(idx), 'w') as f:
             f.write(str(ol))
 
 

@@ -150,12 +150,14 @@ def plot_OPT():
 def plot_BETA(): 
     prime_plot()
 
-    for beta, color in [(10**-3.0, green), (10**-2.5, cyan), (10**-2.0, blue), (10**-1.5, magenta), (10**-1.0, red)]:
+    #for beta, color in [(10**-3.0, green), (10**-2.5, cyan), (10**-2.0, blue), (10**-1.5, magenta), (10**-1.0, red)]:
+    #for beta, color in [(0.25, green), (0.5, cyan), (1.0, blue), (2.0, magenta), (4.0, red)]:
+    for beta, color in [(0.25, green), (0.5, cyan), (1.0, blue)]:#, (2.0, magenta), (4.0, red)]:
         (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, 'gdc', beta) 
-        plot_fill(X, Y, S, color=color, label='gdc 10**{}'.format(round(np.log(beta)/np.log(10.0), 1)))
+        plot_fill(X, Y, S, color=color, label='gdc {:.2e}'.format(beta))
 
     finish_plot(
-        title='Comparison of Optimizers \n({} after {} steps on mnist-10 logistic)'.format(
+        title='Comparison of Optimizers \n({} after {} steps on mnist-10 lenet)'.format(
             metric,
             okey.T
         ), xlabel='learning rate', ylabel=metric, img_filenm=IMG_FILENM
@@ -163,6 +165,6 @@ def plot_BETA():
  
  
 #plot_SGD()
-plot_OPT()
-#plot_BETA()
+#plot_OPT()
+plot_BETA()
 
