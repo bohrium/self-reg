@@ -97,7 +97,7 @@ if __name__=='__main__':
 
     LC = MnistLeNet(digits=list(range(10)))
     LC.load_from('saved-weights/mnist-lenet.npy')
-    for idx in tqdm.tqdm(range(4, 8)):
+    for idx in tqdm.tqdm(range(0, 4)):
         ol = OptimLog()
         for eta in tqdm.tqdm(np.arange(0.04, 0.241, 0.04)):
             for T in [100]:
