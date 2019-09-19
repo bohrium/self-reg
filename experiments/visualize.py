@@ -1,5 +1,5 @@
 ''' author: samtenka
-    change: 2019-08-16
+    change: 2019-08-17
     create: 2019-02-14
     descrp: Compare and plot descent losses as dependent on learning rate.
             Valid plotting modes are
@@ -16,7 +16,7 @@
 
 from matplotlib import pyplot as plt
 import numpy as np
-from predictor import sgd_test_taylor, sgd_test_exponential
+from predictor import sgd_test_taylor, sgd_test_multiepoch, sgd_test_multiepoch_diff_e2h2, sgd_test_exponential
 from optimlogs import OptimKey
 import sys 
 
@@ -96,6 +96,19 @@ def interpolate(x):
 
 metric, optimizer = MODE.split('-') 
 
+def plot_it():
+    prime_plot()
+
+    (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, optimizer, beta=0.0) 
+    plot_bars(X, Y, S, color=blue, label='experiment')
+
+    finish_plot(
+        title='Prediction of SGD \n(gen loss after {} steps on mnist-10 lenet)'.format(
+            okey.T
+        ), xlabel='learning rate', ylabel='gen loss', img_filenm=IMG_FILENM
+    )
+
+
 def plot_SGD():
     prime_plot()
 
@@ -147,7 +160,7 @@ def plot_OPT():
         ), xlabel='learning rate', ylabel=metric, img_filenm=IMG_FILENM
     )
 
-def plot_BETA(): 
+def plot_BETA_SCAN(): 
     prime_plot()
 
     #for beta, color in [(10**-3.0, green), (10**-2.5, cyan), (10**-2.0, blue), (10**-1.5, magenta), (10**-1.0, red)]:
@@ -162,9 +175,35 @@ def plot_BETA():
             okey.T
         ), xlabel='learning rate', ylabel=metric, img_filenm=IMG_FILENM
     )
- 
- 
-plot_SGD()
+
+def plot_EPOCH(): 
+    prime_plot()
+
+    #for opt, beta, color in [('sgd.e2', 0.0, cyan), ('sgd.h2', 0.0, magenta)]:
+    for opt, beta, color in [('diff.e2.h2', 0.0, yellow)]:
+        (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, opt, beta) 
+        plot_bars(X, Y, S, color=color, label=opt)
+
+    X = interpolate(X)
+
+    #Y, S = sgd_test_taylor(gradstats, eta=2*X, T=okey.T, degree=2) 
+    #Y, S = sgd_test_multiepoch(gradstats, eta=2*X, T=okey.T, degree=2, E=1) 
+    #Y_, S_ = sgd_test_multiepoch(gradstats, eta=X, T=okey.T, degree=2, E=2) 
+    #Y, S = Y_ - Y, S_ + S
+    Y, S = sgd_test_multiepoch_diff_e2h2(gradstats, eta=X, T=okey.T, degree=2, E=2) 
+    plot_fill(X, Y, S, color=green, label='theory (deg 2 poly)')
+
+    finish_plot(
+        title='Comparison of Optimizers \n({} after {} steps on mnist-10 lenet)'.format(
+            metric,
+            okey.T
+        ), xlabel='learning rate', ylabel=metric, img_filenm=IMG_FILENM
+    )
+
+
+#plot_it()
+plot_EPOCH()
+#plot_SGD()
 #plot_OPT()
-#plot_BETA()
+#plot_BETA_SCAN()
 

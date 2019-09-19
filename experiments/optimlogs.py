@@ -9,6 +9,7 @@ import numpy as np
 from utils import CC
 import torch
 
+#OptimKey = namedtuple('OptimKey', ('sampler', 'beta', 'eta', 'T', 'N', 'evalset', 'metric')) 
 OptimKey = namedtuple('OptimKey', ('optimizer', 'beta', 'eta', 'T', 'N', 'metric')) 
 
 class OptimLog(object):
@@ -23,23 +24,29 @@ class OptimLog(object):
         return self.logs[okey][-1]
 
     def compute_diffs(self):
+        diffs = {}
         for okey_base, value_base in self.logs.items():
             for okey_comp, value_comp in self.logs.items():
-                if okey_base==okey_comp: continue
-                if ((okey_base.eta, okey_base.T, okey_base.N, okey_base.metric) !=
-                    (okey_comp.eta, okey_comp.T, okey_comp.N, okey_comp.metric)): continue
+                if okey_base == okey_comp: continue
+                if okey_base.metric != okey_comp.metric: continue
                 if len(value_base) != len(value_comp): continue
+
                 value_diff = np.array(value_comp) - np.array(value_base)
                 okey_diff = OptimKey(
-                    optimizer   ='{}-vs-{}'.format(okey_comp.optimizer, okey_base.optimizer),
+                    sampler     =(okey_comp.sampler, okey_base.sampler),
                     beta        =(okey_comp.beta,   okey_base.beta),
                     eta         =(okey_comp.eta,    okey_base.eta),
                     T           =(okey_comp.T,      okey_base.T),
                     N           =(okey_comp.N,      okey_base.N),
+                    evalset     =(okey_comp.evalset,okey_base.evalset),
                     metric      =(okey_comp.metric, okey_base.metric),
                 )  
+                diffs[okey_diff] = value_diff
+        for k in diffs:
+            self.logs[k] = diffs[k]
 
     def __str__(self):
+        self.compute_diffs()
         return '{\n'+',\n'.join(
             '    {}: {{ "mean":{}, "stdv":{}, "nb_samples":{} }}'.format(
                 okey, np.mean(values), np.std(values), len(values)

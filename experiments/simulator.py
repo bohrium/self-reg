@@ -24,7 +24,16 @@ opts = [
     ('GDC', 1.0),
 ]
 def compute_losses(land, eta, T, N, I=1, idx=None, opts=opts, test_extra=300):
-    '''
+    ''' Simulate optimizers on  
+
+        Argument details:
+            land        --- pointed landscape to optimize over (see landscape.py) 
+            T           --- number of updates to perform 
+            N           --- size of training set
+            I           --- number of trials (for each optimizer) to average over  
+            idx         --- index of weight of fixedinits pointed landscape 
+            opts        --- list of (sampler, beta) pairs
+            test_extra  --- number of samples by which test set exceeds train set
     '''
     assert N%2==0, 'GDC simulator needs N to be even for covariance estimation'
     ol = OptimLog()
@@ -72,8 +81,8 @@ def compute_losses(land, eta, T, N, I=1, idx=None, opts=opts, test_extra=300):
 
             test_loss = land.get_loss_stalk(D_test)
             test_acc = land.get_accuracy(D_test)
-            ol.accum(OptimKey(optimizer=opt.lower(), beta=beta, eta=eta, N=N, T=T, metric='test-loss'), test_loss)
-            ol.accum(OptimKey(optimizer=opt.lower(), beta=beta, eta=eta, N=N, T=T, metric='test-acc'), test_acc)
+            ol.accum(OptimKey(sampler=opt.lower(), beta=beta, eta=eta, N=N, T=T, evalset='test', metric='loss'), test_loss)
+            ol.accum(OptimKey(sampler=opt.lower(), beta=beta, eta=eta, N=N, T=T, evalset='test', metric='acc'), test_acc)
 
     return ol
 
@@ -109,11 +118,11 @@ def test_on_quad_landscape():
 def simulate_lenet():
     LC = MnistLeNet(digits=list(range(10)))
     LC.load_from('saved-weights/mnist-lenet.npy')
-    for idx in tqdm.tqdm(range(0, 4)):
+    for idx in tqdm.tqdm(range(0, 1)):
         ol = OptimLog()
         for eta in tqdm.tqdm(np.arange(0.04, 0.241, 0.04)):
-            for T in [100]:
-                ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(1000.0/(T+1)), idx=idx))
+            for T in [10]:
+                ol.absorb(compute_losses(LC, eta=eta, T=T, N=T, I=int(30.0/(T+1)), idx=idx))
 
         with open('ol-lenet-covreg-scan-long-small-2n-{:02d}.data'.format(idx), 'w') as f:
             f.write(str(ol))

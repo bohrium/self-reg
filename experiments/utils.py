@@ -1,13 +1,17 @@
 ''' author: samtenka
-    change: 2019-08-13
+    change: 2019-08-17
     create: 2019-06-12
     descrp: helpers for torch, math, profiling, and ansi commands
 '''
 
 import torch
 import functools
-import memory_profiler
 import time
+import sys
+try:
+    import memory_profiler
+except ImportError:
+    print('failed attempt to import `memory_profiler`')
 
 
 
@@ -37,7 +41,7 @@ prod = lambda seq: functools.reduce(lambda a,b:a*b, seq, 1)
 
 start_time = time.time()
 secs_endured = lambda: (time.time()-start_time) 
-megs_alloced = lambda: (
+megs_alloced = None if 'memory_profile' not in sys.modules else lambda: (
     memory_profiler.memory_usage(
         -1, interval=0.001, timeout=0.0011
     )[0]

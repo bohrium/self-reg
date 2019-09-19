@@ -1,5 +1,5 @@
 ''' author: samtenka
-    change: 2019-09-10
+    change: 2019-09-17
     create: 2019-06-11
     descrp: instantiate abstract class `Landscape` for MNIST models (logistic and deep)
 '''
@@ -27,10 +27,13 @@ from torchvision import datasets, transforms
 
 class MNIST(PointedLandscape):
     ''' load specified digits of MNIST, e.g. just 0s and 1s for binary classification subtask.
-        implements PointedLandscape's `get_data_sample` but not its `update_weight`, `nabla`,
-        `get_random_loss_field`, or `evaluate_as_tensor`.
+        implements PointedLandscape's `sample_data` but not its `update_weights`, `get_weights`,
+        `set_weights`, `get_loss_stalk`, or `nabla`.
     '''
     def __init__(self, digits=list(range(10))):
+        '''
+        '''
+        # load all of mnist:
         train_set, test_set = (
             datasets.MNIST(
                 '../data',
@@ -42,23 +45,28 @@ class MNIST(PointedLandscape):
         )
         self.imgs = torch.cat([train_set.train_data  , test_set.test_data  ], dim=0).numpy() / 255.0
         self.lbls = torch.cat([train_set.train_labels, test_set.test_labels], dim=0).numpy()
-        indices_to_keep = np.array([i for i, lbl in enumerate(self.lbls) if lbl in digits])        
+
+        # filter for requested digits:
+        indices_to_keep = np.array([i for i, lbl in enumerate(self.lbls) if lbl in digits]) 
         self.imgs = torch.Tensor(self.imgs[indices_to_keep]).view(-1, 1, 28, 28)
         self.lbls = torch.Tensor([digits.index(l) for l in self.lbls[indices_to_keep]]).view(-1).long()
+
+        # record index bounds and range:
         self.nb_classes = len(digits)
         self.nb_datapts = len(indices_to_keep)
         self.idxs = np.arange(self.nb_datapts)
 
     def sample_data(self, N):
+        '''
+        '''
         return np.random.choice(self.idxs, N, replace=False)
-        #return self.idxs[:N]
 
     #--------------------------------------------------------------------------#
     #               0.1 finish landscape definition by providing architecture  #
     #--------------------------------------------------------------------------#
 
 class MnistAbstractArchitecture(MNIST, FixedInitsLandscape):
-    '''
+    ''' 
     '''
     def __init__(self, digits=list(range(10)), weight_scale=1.0):
         ''' '''
@@ -298,6 +306,8 @@ if __name__=='__main__':
     ML = model_data['class'](weight_scale = model_data['weight_scale'], verbose=True)
     ML.load_from('saved-weights/{}'.format(model_data['file_nm']), 12)
     ML.switch_to(0)
+    print(ML.get_weights())
+    input()
     LRATE = model_data['lrate']
 
     D = ML.sample_data(N=TIME) 

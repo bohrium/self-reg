@@ -121,6 +121,7 @@ class FixedInitsLandscape(PointedLandscape):
         print(CC + 'saved @R {} @C initial weights to @M {} @C '.format(
             len(self.inits), file_nm
         ))
+        self.switch_to(0)
 
     def load_from(self, file_nm, nb_inits=None):
         ''' load set of weight initializations from the file named '''
