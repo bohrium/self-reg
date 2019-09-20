@@ -295,28 +295,28 @@ if __name__=='__main__':
     #grid_search()
 
     BATCH = 1
-    TIME = 100
+    TIME = 1000
 
     model_nm = 'LENET'
     model_data = {
-        'LOGISTIC': {'class': MnistLogistic, 'weight_scale': 1.0**(1.0/1), 'lrate':1e-1, 'file_nm': 'mnist-logistic.npy'},
+        'LOGISTIC': {'class': MnistLogistic, 'weight_scale': 1.0**(1.0/1), 'lrate':1e-0, 'file_nm': 'mnist-logistic.npy'},
         'MLP'     : {'class': MnistMLP,      'weight_scale': 1.0**(1.0/2), 'lrate':1e-1, 'file_nm': 'mnist-mlp.npy'},
         'LENET'   : {'class': MnistLeNet,    'weight_scale': 1.0**(1.0/3), 'lrate':1e-1, 'file_nm': 'mnist-lenet.npy'},
     }[model_nm]
     ML = model_data['class'](weight_scale = model_data['weight_scale'], verbose=True)
     ML.load_from('saved-weights/{}'.format(model_data['file_nm']), 12)
-    ML.switch_to(0)
+    ML.switch_to(5)
     print(ML.get_weights())
-    input()
     LRATE = model_data['lrate']
 
-    D = ML.sample_data(N=TIME) 
+    #D = ML.sample_data(N=TIME) 
+    D = ML.sample_data(N=10) 
     for i in range(TIME):
-        L = ML.get_loss_stalk(D[i:i+1])
+        L = ML.get_loss_stalk(D[i%len(D):i%len(D)+1])
         G = ML.nabla(L)
         ML.update_weights(-LRATE * G)
 
-        if (i+1)%10: continue
+        if (i+1)%50: continue
 
         L_train= ML.get_loss_stalk(D)
         data = ML.sample_data(N=3000)

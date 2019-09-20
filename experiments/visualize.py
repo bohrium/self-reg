@@ -174,12 +174,14 @@ def plot_BETA_SCAN():
 
     #for beta, color in [(10**-3.0, green), (10**-2.5, cyan), (10**-2.0, blue), (10**-1.5, magenta), (10**-1.0, red)]:
     #for beta, color in [(0.25, green), (0.5, cyan), (1.0, blue), (2.0, magenta), (4.0, red)]:
-    for beta, color in [(0.25, green), (0.5, cyan), (1.0, blue)]:#, (2.0, magenta), (4.0, red)]:
-        (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, 'gdc', beta) 
-        plot_fill(X, Y, S, color=color, label='gdc {:.2e}'.format(beta))
+    #for beta, color in [(0.25, green), (0.5, cyan), (1.0, blue)]:#, (2.0, magenta), (4.0, red)]:
+    #for beta, color in [(0.0, green), (0.25, cyan)]:
+    for beta, color in [(0.0, green), (0.25, cyan), (0.5, blue), (1.0, magenta), (2.0, red), (4.0, yellow)]:
+        (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, 'sgdc', beta) 
+        plot_bars(X, Y, S, color=color, label='sgdc {:.2e}'.format(beta))
 
     finish_plot(
-        title='Comparison of Optimizers \n({} after {} steps on mnist-10 lenet)'.format(
+        title='Comparison of Optimizers \n({} after {} steps per epoch for 10 epochs on mnist-10 lenet)'.format(
             metric,
             okey.T
         ), xlabel='learning rate', ylabel=metric, img_filenm=IMG_FILENM
@@ -189,7 +191,7 @@ def plot_EPOCH():
     prime_plot()
 
     #for opt, beta, color in [('sgd.e2', 0.0, cyan), ('sgd.h2', 0.0, magenta)]:
-    for opt, beta, color in [('diff.e10.h10', 0.0, yellow)]:
+    for opt, beta, color in [('diff.e2.h2', 0.0, yellow)]:
         (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, opt, beta) 
         plot_bars(X, Y, S, color=color, label=opt)
 
@@ -199,7 +201,7 @@ def plot_EPOCH():
     #Y, S = sgd_test_multiepoch(gradstats, eta=2*X, T=okey.T, degree=2, E=1) 
     #Y_, S_ = sgd_test_multiepoch(gradstats, eta=X, T=okey.T, degree=2, E=2) 
     #Y, S = Y_ - Y, S_ + S
-    Y, S = sgd_test_multiepoch_diff_e2h2(gradstats, eta=X, T=okey.T, degree=2, E=10) 
+    Y, S = sgd_test_multiepoch_diff_e2h2(gradstats, eta=X, T=okey.T, degree=2, E=2) 
     plot_fill(X, Y, S, color=green, label='theory (deg 2 poly)')
 
     finish_plot(
@@ -211,8 +213,8 @@ def plot_EPOCH():
 
 
 #plot_GEN()
-plot_EPOCH()
+#plot_EPOCH()
 #plot_SGD()
 #plot_OPT()
-#plot_BETA_SCAN()
+plot_BETA_SCAN()
 
