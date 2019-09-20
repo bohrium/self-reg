@@ -16,7 +16,7 @@
 
 from matplotlib import pyplot as plt
 import numpy as np
-from predictor import sgd_test_taylor, sgd_test_multiepoch, sgd_test_multiepoch_diff_e2h2, sgd_test_exponential
+from predictor import sgd_test_taylor, sgd_gen, sgd_test_multiepoch, sgd_test_multiepoch_diff_e2h2, sgd_test_exponential
 from optimlogs import OptimKey
 import sys 
 
@@ -96,11 +96,20 @@ def interpolate(x):
 
 metric, optimizer = MODE.split('-') 
 
-def plot_it():
+def plot_GEN():
     prime_plot()
 
     (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, optimizer, beta=0.0) 
+    X, Y, S = (np.array([0.0]+list(nparr)) for nparr in (X,Y,S))
     plot_bars(X, Y, S, color=blue, label='experiment')
+
+    Y, S = sgd_gen(gradstats, eta=X, T=okey.T, degree=1) 
+    plot_fill(X, Y, S, color=red, label='theory (deg 1 poly)')
+
+    Y, S = sgd_gen(gradstats, eta=X, T=okey.T, degree=2) 
+    plot_fill(X, Y, S, color=yellow, label='theory (deg 2 poly)')
+
+
 
     finish_plot(
         title='Prediction of SGD \n(gen loss after {} steps on mnist-10 lenet)'.format(
@@ -180,7 +189,7 @@ def plot_EPOCH():
     prime_plot()
 
     #for opt, beta, color in [('sgd.e2', 0.0, cyan), ('sgd.h2', 0.0, magenta)]:
-    for opt, beta, color in [('diff.e2.h2', 0.0, yellow)]:
+    for opt, beta, color in [('diff.e10.h10', 0.0, yellow)]:
         (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, opt, beta) 
         plot_bars(X, Y, S, color=color, label=opt)
 
@@ -190,7 +199,7 @@ def plot_EPOCH():
     #Y, S = sgd_test_multiepoch(gradstats, eta=2*X, T=okey.T, degree=2, E=1) 
     #Y_, S_ = sgd_test_multiepoch(gradstats, eta=X, T=okey.T, degree=2, E=2) 
     #Y, S = Y_ - Y, S_ + S
-    Y, S = sgd_test_multiepoch_diff_e2h2(gradstats, eta=X, T=okey.T, degree=2, E=2) 
+    Y, S = sgd_test_multiepoch_diff_e2h2(gradstats, eta=X, T=okey.T, degree=2, E=10) 
     plot_fill(X, Y, S, color=green, label='theory (deg 2 poly)')
 
     finish_plot(
@@ -201,7 +210,7 @@ def plot_EPOCH():
     )
 
 
-#plot_it()
+#plot_GEN()
 plot_EPOCH()
 #plot_SGD()
 #plot_OPT()

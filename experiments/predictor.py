@@ -18,13 +18,14 @@ blue ='#4444cc'
 def choose(T, t):
     return prod(range(T-t+1, T+1)) / float(prod(range(1, t+1)))
 
-def from_string(gradstats, formula, eta, T, E=1):
+def from_string(gradstats, formula, eta, T, E=1, N=None):
+    N = N if N is not None else T 
     Y = formula[:]
     S = formula.replace('- ', '+ ').replace(' -', ' +')
     for k in gradstats:
         Y = Y.replace(k, 'gradstats["{}"]["mean"]'.format(k))
         S = S.replace(k, 'gradstats["{}"]["stdv"]/gradstats["{}"]["nb_samples"]**0.5'.format(k, k))
-    return tuple(eval(form, {'eta':eta, 'T':T, 'E':E, 'gradstats':gradstats, 'np':np, 'choose':choose}) for form in (Y, S))
+    return tuple(eval(form, {'eta':eta, 'T':T, 'E':E, 'N':N, 'gradstats':gradstats, 'np':np, 'choose':choose}) for form in (Y, S))
 
 sgd_test_coeffs = (
     '(+ ( ()(0) ) )',
@@ -39,6 +40,12 @@ sgd_test_multiepoch_coeffs = (
     '(+ ((2 * choose(E, 2) + choose(E, 1)) * choose(T, 2) * 2*(01-02)(0-1-2) + choose(E, 2)*choose(T, 1)*((01-02)(0-12) + (01-02)(01-2)) + choose(E, 1)*choose(T, 1)*0.5*(01-02)(0-12)) )',
 )
 
+sgd_gen_coeffs = (
+    '(- (0.0 ) )',
+    '(+ (choose(T, 1) * ((01)(01) - (01)(0-1)) )/N )',
+    '(- (choose(T, 2) * (3*(01-02)(01-2) + (01-02)(0-12) - 4*(01-02)(0-1-2)) + choose(T, 1)*0.5*((01-02)(012) - (01-02)(0-12)) )/N )'
+)
+
 def sgd_test_multiepoch_diff_e2h2(gradstats, eta, T, degree, E=None):
     assert 2 == degree, 'i only know the answer for degree 2!'
     formula = 'eta*eta * choose(E, 2) * choose(T, 1) * (01-02)(01-2)'
@@ -46,6 +53,12 @@ def sgd_test_multiepoch_diff_e2h2(gradstats, eta, T, degree, E=None):
     Y, S = from_string(gradstats, formula, eta, T, E)
     return Y, S
 
+def sgd_gen(gradstats, eta, T, degree):
+    assert 1 <= degree, 'need strictly positive degree of approximation!'
+    formula = ' + '.join('eta*'*d + sgd_gen_coeffs[d] for d in range(degree+1))
+    print(formula)
+    Y, S = from_string(gradstats, formula, eta, T)
+    return Y, S
 
 def sgd_test_multiepoch(gradstats, eta, T, degree, E=None):
     assert 1 <= degree, 'need strictly positive degree of approximation!'
