@@ -67,13 +67,13 @@ def finish_plot(title, xlabel, ylabel, img_filenm):
     plt.legend(loc='best')
     plt.savefig(img_filenm, pad_inches=0.05, bbox_inches='tight')
 
-def plot_fill(x, y, s, color, label, z=1.96):
+def plot_fill(x, y, s, color, label, z=1.96, alpha=0.5):
     ''' plot variance (s^2) around mean (y) via 2D shading around a curve '''
     plt.plot(x, y, color=color, alpha=0.5)
     plt.fill(
         np.concatenate([x, x[::-1]]),
         np.concatenate([y-z*s, (y+z*s)[::-1]]),
-        facecolor=color, alpha=0.5, label=label
+        facecolor=color, alpha=alpha, label=label
     )
 
 def plot_bars(x, y, s, color, label, z=1.96, bar_width=1.0/50): 
@@ -103,13 +103,16 @@ def plot_GEN():
     X, Y, S = (np.array([0.0]+list(nparr)) for nparr in (X,Y,S))
     plot_bars(X, Y, S, color=blue, label='experiment')
 
+    X = interpolate(X)
+
     Y, S = sgd_gen(gradstats, eta=X, T=okey.T, degree=1) 
     plot_fill(X, Y, S, color=red, label='theory (deg 1 poly)')
 
     Y, S = sgd_gen(gradstats, eta=X, T=okey.T, degree=2) 
     plot_fill(X, Y, S, color=yellow, label='theory (deg 2 poly)')
 
-
+    Y, S = sgd_gen(gradstats, eta=X, T=okey.T, degree=3) 
+    plot_fill(X, Y, S, color=green, label='theory (deg 3 poly)', alpha=0.25)
 
     finish_plot(
         title='Prediction of SGD \n(gen loss after {} steps on mnist-10 lenet)'.format(
@@ -135,14 +138,16 @@ def plot_SGD():
     Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=3) 
     plot_fill(X, Y, S, color=green, label='theory (deg 3 poly)')
 
-    #    Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=1) 
-    #    plot_fill(X, Y, S, color=red, label='theory (deg 1 ode)')
+    #Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=1) 
+    #plot_fill(X, Y, S, color=red, label='theory (deg 1 ode)')
     #
     #Y, S = sgd_test_exponential(gradstats, eta=X, T=okey.T, degree=2)
     #plot_fill(X, Y, S, color=yellow, label='theory (deg 2 ode)')
     #
     #Y, S = sgd_test_exponential(gradstats, eta=X, T=okey.T, degree=3)
     #plot_fill(X, Y, S, color=green, label='theory (deg 3 ode)')
+
+    plt.ylim((2.4, 3.1))
 
     finish_plot(
         #title='Prediction of SGD \n(test loss after 100 steps on mnist-10 logistic)'.format(
@@ -210,8 +215,8 @@ def plot_EPOCH():
     )
 
 
-#plot_GEN()
-plot_EPOCH()
+plot_GEN()
+#plot_EPOCH()
 #plot_SGD()
 #plot_OPT()
 #plot_BETA_SCAN()
