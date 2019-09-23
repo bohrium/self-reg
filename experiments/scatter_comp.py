@@ -36,7 +36,7 @@ def get_optimlogs(optimlogs_filenm, metric, optimizer, beta, T, eta):
         if okey.optimizer != optimizer: continue
         if okey.metric != metric: continue
         if okey.beta != beta: continue
-        if okey.eta != eta: continue
+        if abs(okey.eta-eta) > eta*1e-6: continue
         if okey.T != T: continue
         print(okey)
         X.append(okey.eta)
@@ -58,6 +58,7 @@ green  ='#44cc44'
 cyan   ='#44aaaa'
 blue   ='#4444cc'
 magenta='#aa44aa'
+gray   ='#888888'
 
 def prime_plot():
     plt.clf()
@@ -68,7 +69,13 @@ def finish_plot(title, xlabel, ylabel, img_filenm):
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.legend(loc='best')
+
+    handles, labels = plt.gca().get_legend_handles_labels()
+    # sort both labels and handles by labels
+    labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
+    plt.gca().legend(handles, labels, loc='lower right')
+
+    #plt.legend(loc='best')
     plt.savefig(img_filenm, pad_inches=0.05, bbox_inches='tight')
 
 def plot_fill(x, y, s, color, label, z=1.96):
@@ -120,7 +127,7 @@ def get_ranks(nparr):
     ranks[temp] = np.arange(len(nparr))
     return ranks
 
-def plot_test_conv(img_filenm, TETAS=[(100, 0.002), (100, 0.006), (100, 0.010), (100, 0.014)]):
+def plot_test_conv(img_filenm, TETAS=[(100, 0.002), (100, 0.006), (100, 0.010), (100, 0.014), (100, 0.018), (100, 0.022), (100, 0.026)]):
     prime_plot()
 
     olds = []
@@ -136,12 +143,14 @@ def plot_test_conv(img_filenm, TETAS=[(100, 0.002), (100, 0.006), (100, 0.010), 
 
             optimlogs_filenm, BETA = (
                 ('from-om/ol-lenet-converged-smalleretaT-fine-{:02d}.data'.format(idx), None)
+                if ETA < 0.016 else
+                ('from-om/ol-lenet-converged-smallerishetaT-fine-{:02d}.data'.format(idx), None)
                 #if ETA in [0.0025, 0.0075, 0.0125, 0.0175] else
                 #('from-om/ol-lenet-converged-{:02d}.data'.format(idx), None)
             )
 
             (X, Y, S), okey = get_optimlogs(optimlogs_filenm, metric='test', optimizer='sgd', beta=None, T=T, eta=ETA)
-            assert X[0]==ETA
+            assert abs(X[0]-ETA) <= ETA*1e-6
 
             gradstats2 = get_grad_stats(gradstats_filenm2) 
             gradstats3 = get_grad_stats(gradstats_filenm3) 
@@ -160,20 +169,21 @@ def plot_test_conv(img_filenm, TETAS=[(100, 0.002), (100, 0.006), (100, 0.010), 
 
         olds.append((expers, degr0s, degr1s, degr2s, degr3s))
 
-        ang = np.random.random() * 2*np.pi
-        plot_scatter(degr1s, expers, red, 'deg 1 poly' if ETA==0.001  else None, ang=ang,  sides=2+int(ETA/0.004), op=0.0, bar_width=0.015)
+        #ang = np.random.random() * 2*np.pi
+        #plot_scatter(degr1s, expers, red, 'deg 1 poly' if ETA==0.01  else None, ang=ang,  sides=2+int(ETA/0.004), op=0.0, bar_width=0.015)
+
+        #ang = np.random.random() * 2*np.pi
+        #plot_scatter(degr2s, expers, yellow, 'deg 2 poly' if ETA==0.01  else None, ang=ang,  sides=2+int(ETA/0.004), op=0.0, bar_width=0.015)
 
         ang = np.random.random() * 2*np.pi
-        plot_scatter(degr2s, expers, yellow, 'deg 1 poly' if ETA==0.001  else None, ang=ang,  sides=2+int(ETA/0.004), op=0.0, bar_width=0.015)
-
-        ang = np.random.random() * 2*np.pi
-        plot_scatter(degr3s, expers, green, 'deg 3 poly' if ETA==0.001  else None, ang=ang,  sides=2+int(ETA/0.004), op=0.0, bar_width=0.015)
+        plot_scatter(degr3s, expers, green, 'deg 3 poly' if ETA==0.01  else None, ang=ang,  sides=2+int(ETA/0.016), op=0.0, bar_width=0.035)
 
         expers = interpolate(expers)
-        plot_fill(expers, expers, expers*0.0, label='ideal' if ETA==0.001  else None, color='blue')
+        plot_fill(expers, expers, expers*0.0, label='ideal' if ETA==0.01  else None, color='blue')
 
-    for idx in [0,1, 2, 3]:
-        for color, deg in [(red, 1),(yellow, 2),(green, 3)]:
+    for idx in [0,1, 2,3]:
+        #for color, deg in [(red, 1),(yellow, 2),(green, 3)]:
+        for color, deg in [(green, 3)]:
             plot_fill(
                 np.array([olds[i][deg+1][idx-1] for i in range(len(TETAS))]),
                 np.array([olds[i][0][idx-1] for i in range(len(TETAS))]),
@@ -235,7 +245,7 @@ def plot_test(img_filenm, T=100, ETAS=[0.005, 0.010, 0.015, 0.020, 0.025]):
         plot_scatter(degr1s, expers, red, 'deg 1 poly' if ETA==0.005 else None, ang=ang,  sides=2+int(ETA/0.005), op=0.0, bar_width=0.015)
 
         ang = np.random.random() * 2*np.pi
-        plot_scatter(degr2s, expers, yellow, 'deg 1 poly' if ETA==0.005 else None, ang=ang,  sides=2+int(ETA/0.005), op=0.0, bar_width=0.015)
+        plot_scatter(degr2s, expers, yellow, 'deg 2 poly' if ETA==0.005 else None, ang=ang,  sides=2+int(ETA/0.005), op=0.0, bar_width=0.015)
 
         ang = np.random.random() * 2*np.pi
         plot_scatter(degr3s, expers, green, 'deg 3 poly' if ETA==0.005 else None, ang=ang,  sides=2+int(ETA/0.005), op=0.0, bar_width=0.015)
@@ -335,35 +345,40 @@ def plot_gene(img_filenm, T=100, ETAS=[0.005, 0.015, 0.025, 0.035, 0.045]):
 def plot_ms(img_filenm):
 
     models = [
-        #(32, 64, 0.1, 1000, green),
-        #(32, 32, 0.1, 1000, green),
-        #(32, 16, 0.1, 1000, green),
-        #(16, 32, 0.1, 1000, green),
-        #(16, 16, 0.1, 1000, green),
-        #(16, 8 , 0.1, 1000, green),
-        #(8, 32 , 0.1, 1000, green),
-        #(8, 16 , 0.1, 1000, green),
-        #(8,  8 , 0.1, 1000, green),
-        #(4, 16 , 0.1, 1000, green), 
-        #(4, 8  , 0.1, 1000, green), 
-        #(4, 2  , 0.1, 1000, green), 
+        (32, 64, 0.15, 1000, green),
+        (32, 32, 0.15, 1000, green),
+        (32, 16, 0.15, 1000, green),
+        (16, 32, 0.15, 1000, green),
+        (16, 16, 0.15, 1000, green),
+        (16, 8 , 0.15, 1000, green),
+        (8, 32 , 0.15, 1000, green),
+        (8, 16 , 0.15, 1000, green),
+        (8,  8 , 0.15, 1000, green),
 
-        (32, 64, 0.05, 1000, yellow),
-        (16, 32, 0.05, 1000, yellow),
-        (16, 8 , 0.05, 1000, yellow),
-        (8, 32 , 0.05, 1000, yellow),
-        (4, 8  , 0.05, 1000, yellow), 
-        (4, 2  , 0.05, 1000, yellow), 
+ 
+        (32, 64, 0.1, 1000, yellow),
+        (32, 32, 0.1, 1000, yellow),
+        (32, 16, 0.1, 1000, yellow),
+        (16, 32, 0.1, 1000, yellow),
+        (16, 16, 0.1, 1000, yellow),
+        (16, 8 , 0.1, 1000, yellow),
+        (8, 32 , 0.1, 1000, yellow),
+        (8, 16 , 0.1, 1000, yellow),
+        (8,  8 , 0.1, 1000, yellow),
 
-        #(4, 2  , 0.025, 1000, red), 
-        #(4, 8  , 0.025, 1000, red), 
-        #(8, 8  , 0.025, 1000, red), 
-        #(16,8  , 0.025, 1000, red), 
-        #(16,32 , 0.025, 1000, red), 
+        #(32, 64, 0.05, 1000, red),
+        #(16, 32, 0.05, 1000, red),
+        #(16, 8 , 0.05, 1000, red),
+        #(8, 32 , 0.05, 1000, red),
 
-        ( 4,  2, 0.005, 1000, red), 
-        ( 4,  8, 0.005, 1000, red), 
-        ( 4, 16, 0.005, 1000, red), 
+        #( 8,  8, 0.025, 1000, red), 
+        #( 8, 32, 0.025, 1000, red), 
+        #(16,  8, 0.025, 1000, red), 
+        #(16, 32, 0.025, 1000, red), 
+        #(32, 16, 0.025, 1000, red), 
+        #(32, 32, 0.025, 1000, red), 
+        #(32, 64, 0.025, 1000, red), 
+
         ( 8,  8, 0.005, 1000, red), 
         ( 8, 32, 0.005, 1000, red), 
         (16,  8, 0.005, 1000, red), 
@@ -373,30 +388,32 @@ def plot_ms(img_filenm):
         (32, 64, 0.005, 1000, red), 
     ]
     expers = [] 
+    degr0s = []
     degr1s = []
     degr2s = []
     degr3s = []
     params= []
     colors = []
+    mode = 'LOSS' #'ACC'
     for widthA, widthB, ETA, T, color in models:
         gradstats_filenm2 = 'from-om/gs-new-lenet-ms-0-{}-{:02d}.ord2.data'.format(widthA, widthB) 
         gradstats_filenm3 = 'from-om/gs-new-lenet-ms-0-{}-{:02d}.ord3.data'.format(widthA, widthB) 
-        try:
-            optimlogs_filenm = 'from-om/ol-lenet-ms-{}-{}-00.data'.format(widthA, widthB)
-            (X, Y, S), okey = get_optimlogs(optimlogs_filenm, metric='test', optimizer='sgd', beta=None, T=T, eta=ETA)
-            assert X[0]==ETA
-        except:
+        for optimlogs_filenm in [
+                'from-om/ol-lenet-ms-{}-{}-00.data'.format(widthA, widthB),
+                'from-om/ol-lenet-smallereta-ms-{}-{}-00.data'.format(widthA, widthB),
+                'from-om/ol-lenet-eta25-ms-{}-{}-00.data'.format(widthA, widthB),
+                'from-om/ol-lenet-smalleta-ms-{}-{}-00.data'.format(widthA, widthB),
+                'from-om/ol-lenet-eta15-ms-{}-{}-00.data'.format(widthA, widthB),
+                ]:
             try:
-                optimlogs_filenm = 'from-om/ol-lenet-smallereta-ms-{}-{}-00.data'.format(widthA, widthB)
-                (X, Y, S), okey = get_optimlogs(optimlogs_filenm, metric='test', optimizer='sgd', beta=None, T=T, eta=ETA)
-                assert X[0]==ETA
-
+                (X, Y, S), okey = get_optimlogs(optimlogs_filenm, metric='testacc'if mode=='ACC' else 'test', optimizer='sgd', beta=None, T=T, eta=ETA)
+                assert len(X)
+                break
             except:
-                optimlogs_filenm = 'from-om/ol-lenet-smalleta-ms-{}-{}-00.data'.format(widthA, widthB)
-                (X, Y, S), okey = get_optimlogs(optimlogs_filenm, metric='test', optimizer='sgd', beta=None, T=T, eta=ETA)
-                if len(X)==0 or X[0]!=ETA:
-                    print('problem with', widthA, widthB)
-                    continue
+                continue
+        else:
+            print('problem with', widthA, widthB)
+            continue
 
         params.append(
             sum(prod(w) for w in MnistLeNet(widthA=widthA, widthB=widthB).subweight_shapes)
@@ -407,43 +424,65 @@ def plot_ms(img_filenm):
         gradstats2 = get_grad_stats(gradstats_filenm2) 
         gradstats3 = get_grad_stats(gradstats_filenm3) 
         gradstats = {k:(gradstats2[k] if gradstats2[k]['mean'] is not None else gradstats3[k]) for k in gradstats2}
+        degr0s.append(gradstats['()(0)']['mean'])
         degr1s.append(sgd_test_taylor(gradstats, eta=X, T=T, degree=1)[0][0]) 
-        degr2s.append(sgd_test_multiepoch_exponential(gradstats, eta=X, T=T//10, degree=2, E=10)[0][0])
+        EPOCH_APPROX=10
+        degr3s.append(sgd_test_multiepoch_exponential(gradstats, eta=X, T=T//EPOCH_APPROX, degree=3, E=EPOCH_APPROX)[0][0])
+        #degr2s.append(sgd_test_taylor(gradstats, eta=X, T=T//2, degree=2)[0][0])
         #degr3s.append(sgd_test_exponential(gradstats, eta=X, T=T, degree=3)[0][0])
         colors.append(color)
      
     print(params)
     prime_plot()
-    expersr = get_ranks(np.array(expers))
+    expersr = get_ranks(+np.array(expers))
+    if mode=='ACC':
+        degr0sr = get_ranks(-np.array(degr0s))
+        paramsr = get_ranks(-np.array(params))
+    else:
+        degr0sr = get_ranks(+np.array(degr0s))
+        paramsr = get_ranks(+np.array(params))
     degr1sr = get_ranks(np.array(degr1s))
     degr2sr = get_ranks(np.array(degr2s))
-    #degr3sr = get_ranks(np.array(degr3s))
-    paramsr = get_ranks(-np.array(params))
+    degr3sr = get_ranks(np.array(degr3s))
+
     for color in set(colors): 
+
         indices = np.array([i for i,c in enumerate(colors) if c==color])
         if not len(indices): continue
         ang = np.random.random() * 2*np.pi
-        plot_scatter(degr2sr[indices], expersr[indices], color, 'ours: deg 2 ode', ang=ang,  sides=3, op=0.0, bar_width=0.03)
-        #plot_scatter(degr1sr[indices], expersr[indices], magenta, 'base: deg 1 poly' if 0 in indices else None,  ang=ang, sides=5, op=1.3, bar_width=0.01)
-        plot_scatter(paramsr[indices], expersr[indices], cyan, 'base: nb params' if 0 in indices else None,  ang=ang, sides=5, op=1.3, bar_width=0.02)
-        #plot_scatter(degr3sr[indices], expersr[indices], color, 'deg 3', ang=3.141/4+ang)
-    #plot_fill(expersr, len(expersr)-1-expersr, expersr*0.0, label='ideal', color='blue')
-    plot_fill(expersr, expersr, expersr*0.0, label='ideal', color='blue')
+        plot_scatter(degr0sr[indices], expersr[indices], cyan, 'init loss' if 0 in indices else None,  ang=ang, sides=5, op=1.3, bar_width=0.010)
+        plot_scatter(paramsr[indices], expersr[indices], magenta, 'nb params' if 0 in indices else None,  ang=ang, sides=5, op=1.3, bar_width=0.010)
+        plot_scatter(degr3sr[indices], expersr[indices], color, 'deg 3 ode', ang=ang,  sides=3, op=0.7, bar_width=0.05)
+
+        for m in models:
+            if m[4]!=color: continue
+            ETA = m[2]
+            break
+        if mode=='ACC':
+            plt.text(np.mean(degr3sr[indices])+2.5, np.mean(expersr[indices])+2.5,'\u03B7 = {}'.format(ETA), color=color)
+        else:
+            plt.text(np.mean(degr3sr[indices])-4.5, np.mean(expersr[indices])+2.5,'\u03B7 = {}'.format(ETA), color=color)
+
+    if mode=='ACC':
+        plot_fill(expersr, len(expersr)-1-expersr, expersr*0.0, label='ideal', color='blue')
+    else:
+        plot_fill(expersr, expersr, expersr*0.0, label='ideal', color='blue')
     plt.axis('equal')
-    #plt.axis('square')
 
     plt.gca().axes.xaxis.set_ticklabels([])
     plt.gca().axes.yaxis.set_ticklabels([])
 
+
+
     finish_plot(
-        title='Hyperparameter Selection \n(after {} epochs on {} points with eta={})'.format(
+        title='Model Selection \n(after {} epochs on {} points)'.format(
             10,
             T//10,
             ETA
-        ), xlabel='predicted loss rank', ylabel='actual loss rank', img_filenm=img_filenm
+        ), xlabel='predicted loss rank', ylabel='actual {} rank'.format('accuracy' if mode=='ACC' else 'loss'), img_filenm=img_filenm
     )
 
-#plot_ms('model-selection.png')
+plot_ms('model-selection.png')
 #plot_gene('gen-gap.png')
 #plot_test('test-loss.png')
-plot_test_conv('test-loss-converged.png')
+#plot_test_conv('test-loss-converged.png')

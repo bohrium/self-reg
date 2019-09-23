@@ -39,7 +39,8 @@ sgd_test_multiepoch_coeffs = (
     '(+ ( ()(0) ) )',
     '(- (choose(E, 1) * choose(T, 1) * (01)(0-1)) )',
     '(+ ((2 * choose(E, 2) + choose(E, 1)) * choose(T, 2) * 2*(01-02)(0-1-2) + choose(E, 2)*choose(T, 1)*((01-02)(0-12) + (01-02)(01-2)) + choose(E, 1)*choose(T, 1)*0.5*(01-02)(0-12)) )',
-)
+    '(- (choose(E*T, 3) * (4*(01-02-13)(0-1-2-3) + 2*(01-02-03)(0-1-2-3)) + choose(E*T, 2) * (1.5 * (01-02-03)(0-1-23) + (01-02-13)(0-1-23) + (01-02-13)(0-12-3)) + choose(E*T, 1) * ((1.0/6) * (01-02-03)(0-123))) )',
+) # 3rd degree is incorrect
 
 #    '(01-02-03)(0-1-2-3)',
 #    '(01-02-03)(0-1-23)',
@@ -152,5 +153,25 @@ def sgd_test_multiepoch_exponential(gradstats, eta, T, degree, E=None):
             Ys.append(get_Y2(*(cs[j][0]+z[j]*cs[j][1] for j in (0,1,2))))
         Ys = np.array(Ys)  
         Y, S = Ys.mean(axis=0), Ys.ptp(axis=0)/2
+    elif degree==3:
+        cs = [from_string(gradstats, sgd_test_multiepoch_coeffs[d], None, T) for d in range(4)]
+
+        def get_Y3(cs0, cs1, cs2, cs3):
+            rate = abs(3 * (cs2/cs1)**2 - 2 * (cs3/cs1))**0.5
+            scale = (1.0/2 + (cs2/cs1)/(2*rate))**2 * rate / cs1  
+            shift = abs((scale*rate)/cs1)**0.5   
+            offset = cs0 - 1.0/shift
+
+            formula = '1.0 / ( {} * (np.exp(- {} * eta) - 1) + {} ) + {}'.format(scale, rate, shift, offset)
+            Y, _ = from_string(gradstats, formula, eta, T, E=E)
+            return Y
+
+        Ys = []
+        for i in range(100):
+            z = [(np.random.random()*2-1) for j in (0,1,2,3)]
+            Ys.append(get_Y3(*(cs[j][0]+z[j]*cs[j][1] for j in (0,1,2,3))))
+        Ys = np.array(Ys)  
+        Y, S = Ys.mean(axis=0), Ys.ptp(axis=0)/2 
+
     return Y, S
 
