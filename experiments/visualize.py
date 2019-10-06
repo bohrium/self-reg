@@ -16,7 +16,7 @@
 
 from matplotlib import pyplot as plt
 import numpy as np
-from predictor import sgd_test_taylor, sgd_gen, sgd_test_multiepoch, sgd_test_multiepoch_diff_e2h2, sgd_test_exponential
+from predictor import sgd_gd_diff, sgd_test_taylor, sgd_gen, sgd_test_multiepoch, sgd_test_multiepoch_diff_e2h2, sgd_test_exponential
 from optimlogs import OptimKey
 import sys 
 
@@ -160,18 +160,24 @@ def plot_SGD():
 def plot_OPT(): 
     prime_plot()
 
-    #for opt, beta, color in [('sgd', 0.0, cyan), ('gd', 0.0, blue)]:#, ('gdc', 1.00, magenta)]:
-    #for opt, beta, color in [('sgd', 0.0, cyan), ('gdc', 1.00, magenta)]:
-    #for opt, beta, color in [('sgd', 0.0, cyan), ('gd', 0.0, blue), ('gdc', 1.00, magenta)]:
-    for opt, beta, color in [('diffc', 1.0, cyan), ('diff', 0.0, magenta)]:#[('sgd', 0.0, cyan), ('gd', 0.0, blue), ('gdc', 1.0, magenta)]:
+    for opt, beta, color in [('diffc', 1.0, cyan), ('diff', 0.0, magenta)]:
         (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, opt, beta) 
+        X, Y, S = (np.array([0]+list(A[:-1])) for A in (X, Y, S))
         plot_bars(X, Y, S, color=color, label=opt)
 
+    X = interpolate(X)
+    plot_fill(X, 0.0*X, 0.0, color=cyan, label='prediction')
+    Y, S = sgd_gd_diff(gradstats, eta=X, T=okey.T, degree=2, N=okey.N) 
+    plot_fill(X, -Y, S, color=magenta, label='prediction')
+    #Y, S = sgd_gd_diff(gradstats, eta=X, T=okey.T, degree=3, N=okey.N) 
+    #plot_fill(X, -Y, S, color=red, label='prediction3')
+
+    plt.ylim([-0.03, +0.02])
     finish_plot(
         title='Comparison of Optimizers \n({} after {} steps on mnist-10 lenet)'.format(
             metric,
             okey.T
-        ), xlabel='learning rate', ylabel=metric, img_filenm=IMG_FILENM
+        ), xlabel='learning rate', ylabel='test loss difference from vanilla SGD', img_filenm=IMG_FILENM
     )
 
 def plot_BETA_SCAN(): 
@@ -185,7 +191,7 @@ def plot_BETA_SCAN():
 
     finish_plot(
         title='Comparison of Optimizers \n({} after {} steps on mnist-10 lenet)'.format(
-            metric,
+           metric,
             okey.T
         ), xlabel='learning rate', ylabel=metric, img_filenm=IMG_FILENM
     )
@@ -215,9 +221,9 @@ def plot_EPOCH():
     )
 
 
-plot_GEN()
+#plot_GEN()
 #plot_EPOCH()
 #plot_SGD()
-#plot_OPT()
+plot_OPT()
 #plot_BETA_SCAN()
 

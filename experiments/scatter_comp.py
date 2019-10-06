@@ -16,7 +16,7 @@
 
 from matplotlib import pyplot as plt
 import numpy as np
-from predictor import sgd_test_taylor, sgd_gen, sgd_test_multiepoch, sgd_test_multiepoch_exponential, sgd_test_multiepoch_diff_e2h2, sgd_test_exponential
+from predictor import sgd_gd_diff, sgd_test_taylor, sgd_gen, sgd_test_multiepoch, sgd_test_multiepoch_exponential, sgd_test_multiepoch_diff_e2h2, sgd_test_exponential
 from optimlogs import OptimKey
 from mnist_landscapes import MnistLeNet 
 from utils import prod
@@ -73,7 +73,7 @@ def finish_plot(title, xlabel, ylabel, img_filenm):
     handles, labels = plt.gca().get_legend_handles_labels()
     # sort both labels and handles by labels
     labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
-    plt.gca().legend(handles, labels, loc='lower right')
+    plt.gca().legend(handles, labels, loc='upper left')
 
     #plt.legend(loc='best')
     plt.savefig(img_filenm, pad_inches=0.05, bbox_inches='tight')
@@ -98,7 +98,7 @@ def plot_bars(x, y, s, color, label, z=1.96, bar_width=1.0/50):
     # connect to the figure legend:
     plt.plot([xx, xx], [yy-z*ss, yy+z*ss], color=color, label=label)
 
-def plot_scatter(x, y, color, label, z=1.96, ang=0.0, bar_width=1.0/50, sides=3, op=1.0): 
+def plot_scatter(x, y, color, label, z=1.96, ang=0.0, bar_width=1.0/50, sides=3, op=0.0): 
     ''' plot plus-signs around a scatter plot '''
     e = bar_width * ((max(x)-min(x)) * (max(y)-min(y)))**0.5
     for (xx, yy) in zip(x, y):
@@ -127,11 +127,70 @@ def get_ranks(nparr):
     ranks[temp] = np.arange(len(nparr))
     return ranks
 
-def plot_test_conv(img_filenm, TETAS=[(100, 0.002), (100, 0.006), (100, 0.010), (100, 0.014), (100, 0.018), (100, 0.022), (100, 0.026)]):
+def plot_test_batchmatch(img_filenm, T=100):
+    prime_plot()
+
+    oldsA = []
+    oldsB = []
+    for idxs, ETAS, olds in [([0,1,2,3], [0.05, 0.10, 0.15, 0.20], oldsA), ([4,5,6,7], [0.04, 0.08, 0.12, 0.16, 0.20], oldsB)]:
+        for ETA in ETAS:
+            expers_diffc = [] 
+            expers_diff  = [] 
+            degr2s = []
+            for idx in idxs:
+                gradstats_filenm = 'new-data/gs-lenet-{:02d}.data'.format(idx) 
+                optimlogs_filenm = 'new-data/ol-lenet-covreg-long-small-2n-{:02d}.data'.format(idx)
+
+                (X, Y, S), okey = get_optimlogs(optimlogs_filenm, metric='test', optimizer='diffc',T=T, beta=1.0, eta=ETA) 
+                expers_diffc.append(Y[0])
+                (X, Y, S), okey = get_optimlogs(optimlogs_filenm, metric='test', optimizer='diff', T=T, beta=0.0,eta=ETA) 
+                expers_diff.append(Y[0])
+
+                gradstats = get_grad_stats(gradstats_filenm) 
+                Y, S = sgd_gd_diff(gradstats, eta=X, T=okey.T, degree=2, N=okey.N) 
+                degr2s.append(-Y[0])
+             
+            expers_diffc = np.array(expers_diffc)
+            expers_diff = np.array(expers_diff)
+            degr2s = np.array(degr2s)
+
+            olds.append((expers_diffc, expers_diff, degr2s))
+
+    ITER = [([0,1,2,3], [0.05, 0.10, 0.15, 0.20], oldsA), ([4,5,6,7], [0.04, 0.08, 0.12, 0.16, 0.20], oldsB)]
+    for idxs, ETAS, olds in ITER:
+        for idx in idxs:
+            diffc = np.array([olds[i][0][idx-min(idxs)] for i in range(len(ETAS))])
+            diff  = np.array([olds[i][1][idx-min(idxs)] for i in range(len(ETAS))])
+            degr2 = np.array([olds[i][2][idx-min(idxs)] for i in range(len(ETAS))])
+
+            plt.plot(0.0*degr2, diff, label='no change' if idx==4 else None, color=blue)
+            plot_scatter(diffc, diff, label=None, color=cyan)
+            plot_fill(diffc, diff, 0.0*diff, label='gd with batchmatch' if idx==4 else None, color=cyan)
+
+            plt.plot(diff, diff, label='identity' if idx==4 else None, color=red)
+            plot_scatter(degr2, diff, label=None, color=magenta)
+            plot_fill(degr2, diff, 0.0*diff, label='gd' if idx==4 else None, color=magenta)
+
+            if min(degr2)==min(olds_[i][2][ii-min(idxs_)] for idxs_, ETAS_, olds_ in ITER for i in range(len(olds_)) for ii in idxs_):
+                for dgr, dif, eta in zip(degr2, diff, ETAS):
+                    plt.text(dgr-0.005, dif+0.005, '\u03B7 = {}'.format(eta), color='gray')
+
+    plt.axis('equal')
+
+    finish_plot(
+        title='TestLoss Prediction \n(after 1 epoch on {} points)'.format(
+            T
+        ), ylabel='actual difference from sgd', xlabel='predicted difference from sgd', img_filenm=img_filenm
+    )
+
+
+
+
+def plot_test_conv(img_filenm, T=100, ETAS=[0.002, 0.006, 0.010, 0.014, 0.018, 0.022, 0.026, 0.030, 0.038, 0.046, 0.054, 0.058, 0.066, 0.074, 0.082]):#, 0.10]):#, 0.12]):#, #0.14, 0.16, 0.18, 0.20]):
     prime_plot()
 
     olds = []
-    for T, ETA in TETAS:
+    for ETA in ETAS:
         expers = [] 
         degr0s = []
         degr1s = []
@@ -145,8 +204,12 @@ def plot_test_conv(img_filenm, TETAS=[(100, 0.002), (100, 0.006), (100, 0.010), 
                 ('from-om/ol-lenet-converged-smalleretaT-fine-{:02d}.data'.format(idx), None)
                 if ETA < 0.016 else
                 ('from-om/ol-lenet-converged-smallerishetaT-fine-{:02d}.data'.format(idx), None)
-                #if ETA in [0.0025, 0.0075, 0.0125, 0.0175] else
-                #('from-om/ol-lenet-converged-{:02d}.data'.format(idx), None)
+                if ETA < 0.028 else
+                ('from-om/ol-lenet-converged-smallerishishetaT-fine-{:02d}.data'.format(idx), None)
+                if ETA < 0.056 else
+                ('from-om/ol-lenet-converged-smallerishishishetaT-fine-{:02d}.data'.format(idx), None)
+                if ETA < 0.09 else
+                ('from-om/ol-lenet-converged-bigetaT-fine-{:02d}.data'.format(idx), None)
             )
 
             (X, Y, S), okey = get_optimlogs(optimlogs_filenm, metric='test', optimizer='sgd', beta=None, T=T, eta=ETA)
@@ -168,39 +231,44 @@ def plot_test_conv(img_filenm, TETAS=[(100, 0.002), (100, 0.006), (100, 0.010), 
         degr3s = np.array(degr3s)
 
         olds.append((expers, degr0s, degr1s, degr2s, degr3s))
-
-        #ang = np.random.random() * 2*np.pi
-        #plot_scatter(degr1s, expers, red, 'deg 1 poly' if ETA==0.01  else None, ang=ang,  sides=2+int(ETA/0.004), op=0.0, bar_width=0.015)
-
-        #ang = np.random.random() * 2*np.pi
-        #plot_scatter(degr2s, expers, yellow, 'deg 2 poly' if ETA==0.01  else None, ang=ang,  sides=2+int(ETA/0.004), op=0.0, bar_width=0.015)
-
-        ang = np.random.random() * 2*np.pi
-        plot_scatter(degr3s, expers, green, 'deg 3 poly' if ETA==0.01  else None, ang=ang,  sides=2+int(ETA/0.016), op=0.0, bar_width=0.035)
-
         expers = interpolate(expers)
-        plot_fill(expers, expers, expers*0.0, label='ideal' if ETA==0.01  else None, color='blue')
 
-    for idx in [0,1, 2,3]:
-        #for color, deg in [(red, 1),(yellow, 2),(green, 3)]:
-        for color, deg in [(green, 3)]:
+    for idx in [0,1,2,3]:
+        e = np.array([olds[i][0][idx-1] for i in range(len(ETAS))]) - olds[0][0][idx-1]
+        offsetx, offsety = ((idx%2)*2-1)*0.003 - np.mean(e), ((idx//2)*2-1)*0.003 - np.mean(e)
+        for color, deg in [(red, 1),(yellow, 2),(green, 3)]:
             plot_fill(
-                np.array([olds[i][deg+1][idx-1] for i in range(len(TETAS))]),
-                np.array([olds[i][0][idx-1] for i in range(len(TETAS))]),
-                np.array([0.0 for i in range(len(TETAS))]),
-                label=None, color=color
+                np.array([olds[i][deg+1][idx-1] for i in range(len(ETAS))]) - olds[0][deg+1][idx-1] + offsetx,
+                e + offsety,
+                np.array([0.0 for i in range(len(ETAS))]),
+                label='deg {} ode'.format(str(deg)) if idx==0 else None, color=color
             )
+        plot_fill(
+            e + offsetx,
+            e + offsety,
+            np.array([0.0 for i in range(len(ETAS))]),
+            label='ideal' if idx==0.0 else None, color='blue'
+        )
+
+    plt.plot([0.000, 0.000], [-0.001, +0.001], color='gray')
+    plt.plot([-0.0001, +0.0001], [-0.001, -0.001], color='gray')
+    plt.plot([-0.0001, +0.0001], [+0.001, +0.001], color='gray')
+    plt.plot([-0.001, +0.001], [0.000, 0.000]    , color='gray')
+    plt.plot([-0.001, -0.001], [-0.0001, +0.0001], color='gray')
+    plt.plot([+0.001, +0.001], [-0.0001, +0.0001], color='gray')
+
+    plt.text(0.0002, 0.0002, '0.002', color='gray')
 
     plt.axis('equal')
     #plt.axis('square')
 
-    #plt.gca().axes.xaxis.set_ticklabels([])
-    #plt.gca().axes.yaxis.set_ticklabels([])
+    plt.gca().axes.xaxis.set_ticklabels([])
+    plt.gca().axes.yaxis.set_ticklabels([])
 
     finish_plot(
         title='TestLoss Prediction \n(after 1 epoch on {} points)'.format(
             T
-        ), xlabel='predicted test loss', ylabel='actual test loss', img_filenm=img_filenm
+        ), xlabel='predicted test loss decrease', ylabel='actual test loss decrease', img_filenm=img_filenm
     )
 
 
@@ -482,7 +550,8 @@ def plot_ms(img_filenm):
         ), xlabel='predicted loss rank', ylabel='actual {} rank'.format('accuracy' if mode=='ACC' else 'loss'), img_filenm=img_filenm
     )
 
-plot_ms('model-selection.png')
+#plot_ms('model-selection.png')
 #plot_gene('gen-gap.png')
 #plot_test('test-loss.png')
 #plot_test_conv('test-loss-converged.png')
+plot_test_batchmatch('test-loss-bm.png')
