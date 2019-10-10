@@ -35,11 +35,18 @@ sgd_test_coeffs = (
     '(- (choose(T, 3) * (4*(01-02-13)(0-1-2-3) + 2*(01-02-03)(0-1-2-3)) + choose(T, 2) * (1.5 * (01-02-03)(0-1-23) + (01-02-13)(0-1-23) + (01-02-13)(0-12-3)) + choose(T, 1) * ((1.0/6) * (01-02-03)(0-123))) )',
 )
 
+sgd_test_coeffs_gauss = (
+    '(+ ( ()(0) ) )',
+    '(- (choose(T, 1) * (01)(0-1)) )',
+    '(+ (choose(T, 2) * 2*(01-02)(0-1-2) + choose(T, 1) * 0.5*(01-02)(0-12)) )',
+    '(- (choose(T, 3) * (4*(01-02-13)(0-1-2-3) + 2*(01-02-03)(0-1-2-3)) + choose(T, 2) * (1.5 * (01-02-03)(0-1-23) + (01-02-13)(0-1-23) + (01-02-13)(0-12-3)) + choose(T, 1) * ((1.0/6) * (3 * (01-02-03)(0-1-23) - 2 * (01-02-03)(0-1-2-3)))) )',
+)
+
 sgd_test_multiepoch_coeffs = (
     '(+ ( ()(0) ) )',
     '(- (choose(E, 1) * choose(T, 1) * (01)(0-1)) )',
     '(+ ((2 * choose(E, 2) + choose(E, 1)) * choose(T, 2) * 2*(01-02)(0-1-2) + choose(E, 2)*choose(T, 1)*((01-02)(0-12) + (01-02)(01-2)) + choose(E, 1)*choose(T, 1)*0.5*(01-02)(0-12)) )',
-    '(- ( ({}) ) )'.format(') + ('.join(
+    '(- ( ({}) ) )'.format(') + ('.join((
         'choose(E, 3)*6*choose(T, 3) * ( (01-02-13)(0-1-2-3)  +  (01-02-03)(0-1-2-3)  +  (01-02-13)(0-1-2-3)  +  (01-02-13)(0-1-2-3)  +  (01-02-13)(0-1-2-3)  +  (01-02-03)(0-1-2-3) )',
         'choose(E, 3)*2*choose(T, 2) * (  (01-02-13)(0-13-2)  +   (01-02-03)(0-1-23)  +   (01-02-13)(0-1-23)  +   (01-02-13)(0-13-2)  +   (01-02-13)(0-1-23)  +   (01-02-03)(0-1-23) )',
         'choose(E, 3)*2*choose(T, 2) * (  (01-02-13)(0-12-3)  +   (01-02-03)(01-2-3)  +   (01-02-13)(0-12-3)  +   (01-02-13)(0-1-23)  +   (01-02-13)(0-12-3)  +   (01-02-03)(0-1-23) )',
@@ -59,7 +66,7 @@ sgd_test_multiepoch_coeffs = (
         'choose(E, 1) * choose(T, 2) * (                      0.5*(01-02-03)(0-12-3) +0.5*(01-02-13)(0-1-23)  +                       0.5*(01-02-13)(0-1-23) +0.5*(01-02-03)(0-1-23) )',
         'choose(E, 1) * choose(T, 2) * (                                                                      0.5*(01-02-13)(0-12-3) +0.5*(01-02-13)(0-12-3) +0.5*(01-02-03)(0-1-23) )',
         'choose(E, 1) * choose(T, 1) * (                                                                                                                     1.0/6*(01-02-03)(012-3) )',
-    )
+    )))
 )
 
 #    '(01-02-03)(0-1-2-3)',
@@ -131,6 +138,12 @@ def sgd_test_multiepoch(gradstats, eta, T, degree, E=None):
 def sgd_test_taylor(gradstats, eta, T, degree):
     assert 1 <= degree, 'need strictly positive degree of approximation!'
     formula = ' + '.join('eta*'*d + sgd_test_coeffs[d] for d in range(degree+1))
+    Y, S = from_string(gradstats, formula, eta, T)
+    return Y, S
+
+def sgd_test_taylor_gauss(gradstats, eta, T, degree):
+    assert 1 <= degree, 'need strictly positive degree of approximation!'
+    formula = ' + '.join('eta*'*d + sgd_test_coeffs_gauss[d] for d in range(degree+1))
     Y, S = from_string(gradstats, formula, eta, T)
     return Y, S
 
