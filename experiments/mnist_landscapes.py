@@ -290,44 +290,50 @@ def grid_search(TIME=1000, NB_ITERS=4):
                 accuracy_bar
             )))
 
- 
+def sample_models():
+    for widthA in [4, 8, 16, 32]:
+        for widthB in [int(widthA * offset) for offset in [0.5, 1, 2, 4]]:
+            ML = MnistLeNet(widthA=widthA, widthB=widthB)
+            ML.resample_to('saved-weights/mnist-lenet-ms-{}-{}.npy'.format(widthA, widthB), 2)
+
 if __name__=='__main__':
     #grid_search()
+    sample_models()
 
-    BATCH = 1
-    TIME = 1000
+    #BATCH = 1
+    #TIME = 100
 
-    model_nm = 'LENET'
-    model_data = {
-        'LOGISTIC': {'class': MnistLogistic, 'weight_scale': 1.0**(1.0/1), 'lrate':1e-0, 'file_nm': 'mnist-logistic.npy'},
-        'MLP'     : {'class': MnistMLP,      'weight_scale': 1.0**(1.0/2), 'lrate':1e-1, 'file_nm': 'mnist-mlp.npy'},
-        'LENET'   : {'class': MnistLeNet,    'weight_scale': 1.0**(1.0/3), 'lrate':1e-1, 'file_nm': 'mnist-lenet.npy'},
-    }[model_nm]
-    ML = model_data['class'](weight_scale = model_data['weight_scale'], verbose=True)
-    ML.load_from('saved-weights/{}'.format(model_data['file_nm']), 12)
-    ML.switch_to(5)
-    print(ML.get_weights())
-    LRATE = model_data['lrate']
+    #model_nm = 'LENET'
+    #model_data = {
+    #    'LOGISTIC': {'class': MnistLogistic, 'weight_scale': 1.0**(1.0/1), 'lrate':1e-1, 'file_nm': 'mnist-logistic.npy'},
+    #    'MLP'     : {'class': MnistMLP,      'weight_scale': 1.0**(1.0/2), 'lrate':1e-1, 'file_nm': 'mnist-mlp.npy'},
+    #    'LENET'   : {'class': MnistLeNet,    'weight_scale': 1.0**(1.0/3), 'lrate':1e-1, 'file_nm': 'mnist-lenet.npy'},
+    #}[model_nm]
+    #ML = model_data['class'](weight_scale = model_data['weight_scale'], verbose=True)
+    #ML.load_from('saved-weights/{}'.format(model_data['file_nm']), 12)
+    #ML.switch_to(0)
+    #print(ML.get_weights())
+    #input()
+    #LRATE = model_data['lrate']
 
     #D = ML.sample_data(N=TIME) 
-    D = ML.sample_data(N=10) 
-    for i in range(TIME):
-        L = ML.get_loss_stalk(D[i%len(D):i%len(D)+1])
-        G = ML.nabla(L)
-        ML.update_weights(-LRATE * G)
+    #for i in range(TIME):
+    #    L = ML.get_loss_stalk(D[i:i+1])
+    #    G = ML.nabla(L)
+    #    ML.update_weights(-LRATE * G)
 
-        if (i+1)%50: continue
+    #    if (i+1)%10: continue
 
-        L_train= ML.get_loss_stalk(D)
-        data = ML.sample_data(N=3000)
-        L_test = ML.get_loss_stalk(data[:1500])
-        L_test_= ML.get_loss_stalk(data[1500:])
-        acc = ML.get_accuracy(ML.sample_data(N=3000))
+    #    L_train= ML.get_loss_stalk(D)
+    #    data = ML.sample_data(N=3000)
+    #    L_test = ML.get_loss_stalk(data[:1500])
+    #    L_test_= ML.get_loss_stalk(data[1500:])
+    #    acc = ML.get_accuracy(ML.sample_data(N=3000))
 
-        print(CC+' @C \t'.join([
-            'after @M {:4d} @C steps'.format(i+1),
-            'grad2 @G {:.2e}'.format(ML.nabla(L_test).dot(ML.nabla(L_test_)).detach().numpy()),
-            'train loss @Y {:.2f}'.format(L_train.detach().numpy()),
-            'test loss @L {:.2f}'.format(L_test.detach().numpy()),
-            'test acc @O {:.2f}'.format(acc.detach().numpy()),
-        '']))
+    #    print(CC+' @C \t'.join([
+    #        'after @M {:4d} @C steps'.format(i+1),
+    #        'grad2 @G {:.2e}'.format(ML.nabla(L_test).dot(ML.nabla(L_test_)).detach().numpy()),
+    #        'train loss @Y {:.2f}'.format(L_train.detach().numpy()),
+    #        'test loss @L {:.2f}'.format(L_test.detach().numpy()),
+    #        'test acc @O {:.2f}'.format(acc.detach().numpy()),
+    #    '']))

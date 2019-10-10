@@ -1,0 +1,8 @@
+{
+    OptimKey(optimizer='sgd', beta=None, eta=0.005, T=1000, N=100, metric='gen'): { "mean":0.06036883965134621, "stdv":0.04180086776614189, "nb_samples":60 },
+    OptimKey(optimizer='sgd', beta=None, eta=0.005, T=1000, N=100, metric='genacc'): { "mean":-0.026500000000000006, "stdv":0.0410999797242448, "nb_samples":60 },
+    OptimKey(optimizer='sgd', beta=None, eta=0.005, T=1000, N=100, metric='test'): { "mean":2.308119058609009, "stdv":0.02286413125693798, "nb_samples":60 },
+    OptimKey(optimizer='sgd', beta=None, eta=0.005, T=1000, N=100, metric='testacc'): { "mean":0.11716666666666667, "stdv":0.017609577570805675, "nb_samples":60 },
+    OptimKey(optimizer='sgd', beta=None, eta=0.005, T=1000, N=100, metric='train'): { "mean":2.2477502822875977, "stdv":0.02998286858201027, "nb_samples":60 },
+    OptimKey(optimizer='sgd', beta=None, eta=0.005, T=1000, N=100, metric='trainacc'): { "mean":0.1436666666666667, "stdv":0.04381653670577912, "nb_samples":60 }
+}

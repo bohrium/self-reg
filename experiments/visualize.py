@@ -16,7 +16,7 @@
 
 from matplotlib import pyplot as plt
 import numpy as np
-from predictor import sgd_test_taylor, sgd_gen, sgd_test_multiepoch, sgd_test_multiepoch_diff_e2h2, sgd_test_exponential
+from predictor import sgd_gd_diff, sgd_test_taylor, sgd_test_taylor_gauss, sgd_gen, sgd_test_multiepoch, sgd_test_multiepoch_diff_e2h2, sgd_test_exponential
 from optimlogs import OptimKey
 import sys 
 
@@ -31,6 +31,7 @@ def get_optimlogs(optimlogs_filenm, metric, optimizer, beta):
         ol = eval(f.read())
 
     X, Y, S = [], [], []
+    last_okey = None
     for okey in ol:
         if okey.optimizer != optimizer: continue
         if okey.metric != metric: continue
@@ -38,11 +39,12 @@ def get_optimlogs(optimlogs_filenm, metric, optimizer, beta):
         X.append(okey.eta)
         Y.append(ol[okey]['mean'])
         S.append(ol[okey]['stdv']/ol[okey]['nb_samples']**0.5)
+        last_okey=okey
     X = np.array(X)
     Y = np.array(Y)
     S = np.array(S)
 
-    return (X,Y,S), okey 
+    return (X,Y,S), last_okey 
         
     #--------------------------------------------------------------------------#
     #               2.1 plotting primitives                                    #
@@ -67,13 +69,13 @@ def finish_plot(title, xlabel, ylabel, img_filenm):
     plt.legend(loc='best')
     plt.savefig(img_filenm, pad_inches=0.05, bbox_inches='tight')
 
-def plot_fill(x, y, s, color, label, z=1.96):
+def plot_fill(x, y, s, color, label, z=1.96, alpha=0.5):
     ''' plot variance (s^2) around mean (y) via 2D shading around a curve '''
     plt.plot(x, y, color=color, alpha=0.5)
     plt.fill(
         np.concatenate([x, x[::-1]]),
         np.concatenate([y-z*s, (y+z*s)[::-1]]),
-        facecolor=color, alpha=0.5, label=label
+        facecolor=color, alpha=alpha, label=label
     )
 
 def plot_bars(x, y, s, color, label, z=1.96, bar_width=1.0/50): 
@@ -103,13 +105,16 @@ def plot_GEN():
     X, Y, S = (np.array([0.0]+list(nparr)) for nparr in (X,Y,S))
     plot_bars(X, Y, S, color=blue, label='experiment')
 
+    X = interpolate(X)
+
     Y, S = sgd_gen(gradstats, eta=X, T=okey.T, degree=1) 
     plot_fill(X, Y, S, color=red, label='theory (deg 1 poly)')
 
     Y, S = sgd_gen(gradstats, eta=X, T=okey.T, degree=2) 
     plot_fill(X, Y, S, color=yellow, label='theory (deg 2 poly)')
 
-
+    Y, S = sgd_gen(gradstats, eta=X, T=okey.T, degree=3) 
+    plot_fill(X, Y, S, color=green, label='theory (deg 3 poly)', alpha=0.25)
 
     finish_plot(
         title='Prediction of SGD \n(gen loss after {} steps on mnist-10 lenet)'.format(
@@ -118,13 +123,33 @@ def plot_GEN():
     )
 
 
+def plot_GAUSS():
+    prime_plot()
+
+    (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, optimizer, beta=None) 
+    plot_bars(X, Y, S, color=blue, label='experiment')
+    
+    X = interpolate(np.array([0] + list(X)))
+
+    Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=3) 
+    plot_fill(X, Y, S, color=green, label='theory (deg 3 poly)')
+
+    Y, S = sgd_test_taylor_gauss(gradstats, eta=X, T=okey.T, degree=3) 
+    plot_fill(X, Y, S, color=magenta, label='theory (deg 3 poly gauss)')
+
+    finish_plot(
+        title='Prediction of SGD \n(test loss after {} steps on cifar-10 lenet)'.format(
+            okey.T
+        ), xlabel='learning rate', ylabel='test loss', img_filenm=IMG_FILENM
+    )
+
 def plot_SGD():
     prime_plot()
 
-    (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, optimizer, beta=0.0) 
+    (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, optimizer, beta=None) 
     plot_bars(X, Y, S, color=blue, label='experiment')
     
-    X = interpolate(X)
+    X = interpolate(np.array([0] + list(X)))
 
     Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=1) 
     plot_fill(X, Y, S, color=red, label='theory (deg 1 poly)')
@@ -135,8 +160,8 @@ def plot_SGD():
     Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=3) 
     plot_fill(X, Y, S, color=green, label='theory (deg 3 poly)')
 
-    #    Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=1) 
-    #    plot_fill(X, Y, S, color=red, label='theory (deg 1 ode)')
+    #Y, S = sgd_test_taylor(gradstats, eta=X, T=okey.T, degree=1) 
+    #plot_fill(X, Y, S, color=red, label='theory (deg 1 ode)')
     #
     #Y, S = sgd_test_exponential(gradstats, eta=X, T=okey.T, degree=2)
     #plot_fill(X, Y, S, color=yellow, label='theory (deg 2 ode)')
@@ -144,9 +169,12 @@ def plot_SGD():
     #Y, S = sgd_test_exponential(gradstats, eta=X, T=okey.T, degree=3)
     #plot_fill(X, Y, S, color=green, label='theory (deg 3 ode)')
 
+    #plt.ylim((2.4, 3.1))
+    plt.ylim((2.5, 3.0))
+
     finish_plot(
         #title='Prediction of SGD \n(test loss after 100 steps on mnist-10 logistic)'.format(
-        title='Prediction of SGD \n(test loss after {} steps on mnist-10 lenet)'.format(
+        title='Prediction of SGD \n(test loss after {} steps on cifar-10 lenet)'.format(
             okey.T
         ), xlabel='learning rate', ylabel='test loss', img_filenm=IMG_FILENM
     )
@@ -155,18 +183,24 @@ def plot_SGD():
 def plot_OPT(): 
     prime_plot()
 
-    #for opt, beta, color in [('sgd', 0.0, cyan), ('gd', 0.0, blue)]:#, ('gdc', 1.00, magenta)]:
-    #for opt, beta, color in [('sgd', 0.0, cyan), ('gdc', 1.00, magenta)]:
-    #for opt, beta, color in [('sgd', 0.0, cyan), ('gd', 0.0, blue), ('gdc', 1.00, magenta)]:
-    for opt, beta, color in [('diffc', 1.0, cyan), ('diff', 0.0, magenta)]:#[('sgd', 0.0, cyan), ('gd', 0.0, blue), ('gdc', 1.0, magenta)]:
+    for opt, beta, color in [('diffc', 1.0, cyan), ('diff', 0.0, magenta)]:
         (X, Y, S), okey = get_optimlogs(OPTIMLOGS_FILENM, metric, opt, beta) 
+        X, Y, S = (np.array([0]+list(A[:-1])) for A in (X, Y, S))
         plot_bars(X, Y, S, color=color, label=opt)
 
+    X = interpolate(X)
+    plot_fill(X, 0.0*X, 0.0, color=cyan, label='prediction')
+    Y, S = sgd_gd_diff(gradstats, eta=X, T=okey.T, degree=2, N=okey.N) 
+    plot_fill(X, -Y, S, color=magenta, label='prediction')
+    #Y, S = sgd_gd_diff(gradstats, eta=X, T=okey.T, degree=3, N=okey.N) 
+    #plot_fill(X, -Y, S, color=red, label='prediction3')
+
+    plt.ylim([-0.03, +0.02])
     finish_plot(
         title='Comparison of Optimizers \n({} after {} steps on mnist-10 lenet)'.format(
             metric,
             okey.T
-        ), xlabel='learning rate', ylabel=metric, img_filenm=IMG_FILENM
+        ), xlabel='learning rate', ylabel='test loss difference from vanilla SGD', img_filenm=IMG_FILENM
     )
 
 def plot_BETA_SCAN(): 
@@ -181,8 +215,8 @@ def plot_BETA_SCAN():
         plot_bars(X, Y, S, color=color, label='sgdc {:.2e}'.format(beta))
 
     finish_plot(
-        title='Comparison of Optimizers \n({} after {} steps per epoch for 10 epochs on mnist-10 lenet)'.format(
-            metric,
+        title='Comparison of Optimizers \n({} after {} steps on mnist-10 lenet)'.format(
+           metric,
             okey.T
         ), xlabel='learning rate', ylabel=metric, img_filenm=IMG_FILENM
     )
@@ -215,6 +249,7 @@ def plot_EPOCH():
 #plot_GEN()
 #plot_EPOCH()
 #plot_SGD()
+plot_GAUSS()
 #plot_OPT()
 plot_BETA_SCAN()
 
